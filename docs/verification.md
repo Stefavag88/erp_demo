@@ -76,3 +76,9 @@ The user's approved scope change replaces SQL customer-profile lookup with ICust
 - Final build: zero warnings/errors. Unit suite: 73 passed and the same 1 existing duplicate-provider failure. Separate Kestrel smoke against a fresh SQL database returned HTTP 200, finalAmount 280.70, totalDiscount 59.30 and three discounts; process/database cleanup completed.
 - Independent read-only review covered the catalog commit plus the complete cache working tree. No Critical, Important or actionable Minor findings were identified. Existing engine validation, dependency vulnerability auditing, database upgrades and distributed/background cache capabilities were explicitly outside that review's approved cache scope; the known limitations remain documented above.
 - With SQL opt-in unset, the integration project passes 49 cache/mapping/provider/API tests and explicitly skips 14 SQL tests. This confirms that the cache tests require neither SQL Server nor real-time expiry sleeps.
+
+## Provider registration validation fix
+
+The user authorized correcting the previously documented engine regression in its own commit. Duplicate registrations were not checked, and sorting a single unknown category could bypass its key selector entirely. Validation now explicitly checks every registration before sorting/invoking providers.
+
+The original failing test and two focused regressions failed before the fix. All 78 unit tests now pass, including duplicate registration, a single unknown category and rejection before any provider is invoked. The earlier duplicate-provider failure is resolved; references to it above describe historical runs.

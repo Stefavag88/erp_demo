@@ -8,7 +8,26 @@ namespace ERP.Discounts.Application;
 
 public sealed class DiscountEngine(IEnumerable<IDiscountProvider> providers, DiscountCalculator calculator, TimeProvider timeProvider) : IDiscountEngine
 {
-    private readonly IDiscountProvider[] _orderedProviders = [.. providers.OrderBy(p => DiscountCategoryPolicy.GetPriority(p.Type))];
+    private readonly IDiscountProvider[] _orderedProviders = ValidateAndOrderProviders(providers);
+
+    private static IDiscountProvider[] ValidateAndOrderProviders(IEnumerable<IDiscountProvider> providers)
+    {
+        var registrations = providers.ToArray();
+        var categories = new HashSet<DiscountType>();
+
+        foreach (var provider in registrations)
+        {
+            if (provider is null)
+                throw new InvalidOperationException("Provider registration cannot be null.");
+
+            // Validate explicitly: sorting a single item may skip the key selector.
+            DiscountCategoryPolicy.GetPriority(provider.Type);
+            if (!categories.Add(provider.Type))
+                throw new InvalidOperationException($"Duplicate provider category: {provider.Type}.");
+        }
+
+        return [.. registrations.OrderBy(p => DiscountCategoryPolicy.GetPriority(p.Type))];
+    }
 
     public async Task<PricingResult> CalculateAsync(PricingRequest request, CancellationToken cancellationToken)
     {

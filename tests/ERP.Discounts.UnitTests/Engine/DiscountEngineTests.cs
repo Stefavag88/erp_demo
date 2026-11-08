@@ -46,6 +46,28 @@ public class DiscountEngineTests
         await Assert.ThrowsAsync<InvalidOperationException>(()=>Engine(StubDiscountProvider.With(DiscountType.Promotion),StubDiscountProvider.With(DiscountType.Promotion)).CalculateAsync(PricingRequestValidationTests.Valid(),default));
         await Assert.ThrowsAsync<InvalidOperationException>(()=>Engine(StubDiscountProvider.With((DiscountType)99)).CalculateAsync(PricingRequestValidationTests.Valid(),default));
     }
+    [Fact]
+    public async Task Rejects_a_single_unknown_category_without_relying_on_sorting()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Engine(
+            StubDiscountProvider.With((DiscountType)99)).CalculateAsync(PricingRequestValidationTests.Valid(), default));
+    }
+
+    [Fact]
+    public async Task Invalid_registration_fails_before_any_provider_is_invoked()
+    {
+        var invoked = false;
+        var first = new StubDiscountProvider(DiscountType.PriceList, (_, _) =>
+        {
+            invoked = true;
+            return Task.FromResult<IReadOnlyList<ResolvedDiscount>>([]);
+        });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Engine(first,
+            StubDiscountProvider.With(DiscountType.PriceList)).CalculateAsync(PricingRequestValidationTests.Valid(), default));
+        Assert.False(invoked);
+    }
+
     public static IEnumerable<object[]> BadResults()
     {
         yield return [new ResolvedDiscount[] { D("wrong",DiscountType.Coupon,1) }];
