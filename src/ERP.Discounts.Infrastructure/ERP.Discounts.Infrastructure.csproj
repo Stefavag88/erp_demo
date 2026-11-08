@@ -6,6 +6,7 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.14" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageReference Include="Polly.Core" Version="8.4.2" />
 
     <InternalsVisibleTo Include="ERP.Discounts.IntegrationTests" />
   </ItemGroup>

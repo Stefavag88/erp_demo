@@ -4,6 +4,11 @@ namespace ERP.Discounts.Infrastructure.Data;
 
 public sealed class SqlConnectionFactory(string connectionString)
 {
+    private readonly string connectionString = new SqlConnectionStringBuilder(connectionString)
+    {
+        ConnectRetryCount = 0
+    }.ConnectionString;
+
     public async Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
     {
         var connection = new SqlConnection(connectionString);

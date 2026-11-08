@@ -10,6 +10,7 @@ using ERP.Discounts.Infrastructure.Caching;
 using ERP.Discounts.Infrastructure.Data;
 using ERP.Discounts.Infrastructure.Providers;
 using ERP.Discounts.Infrastructure.Repositories;
+using ERP.Discounts.Infrastructure.Resilience;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json.Serialization;
 
@@ -32,6 +33,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddMemoryCache();
 
 builder.Services.AddSingleton(new SqlConnectionFactory(connectionString));
+builder.Services.AddSingleton<SqlReadRetryPolicy>();
 
 //repositories
 builder.Services.AddScoped<IPriceListRepository, DapperPriceListRepository>();

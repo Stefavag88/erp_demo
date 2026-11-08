@@ -1,3 +1,4 @@
+using ERP.Discounts.Infrastructure.Resilience;
 using ERP.Discounts.Application.Contracts;
 using ERP.Discounts.Application.Providers;
 using ERP.Discounts.Application.Repositories;
@@ -29,7 +30,7 @@ public class CachedPromotionEligibilityTests
         await using var db = await SqlServerFixture.CreateAsync();
         await db.SqlAsync("UPDATE dbo.Promotions SET StartsAtUtc='2026-01-01T00:00:00.001',EndsAtUtc='2026-01-01T00:00:00.002' WHERE Name='Segment Promotion';");
         using var memory = new MemoryCache(new MemoryCacheOptions());
-        var repository = new CountingRepository(new DapperPromotionRepository(new SqlConnectionFactory(db.ConnectionString)));
+        var repository = new CountingRepository(new DapperPromotionRepository(new SqlConnectionFactory(db.ConnectionString), new SqlReadRetryPolicy(TimeProvider.System)));
         using var cached = new CachedPromotionRepository(repository, memory);
         var provider = new PromotionDiscountProvider(new DummyCustomerSegmentProvider(), cached);
         var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero).AddMilliseconds(1);

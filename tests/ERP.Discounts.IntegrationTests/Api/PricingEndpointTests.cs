@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using ERP.Discounts.IntegrationTests.Resilience;
 namespace ERP.Discounts.IntegrationTests.Api;
 
 [Trait("Category","Api")]
@@ -115,6 +116,21 @@ public class PricingEndpointTests
     {
         await using var factory=new Factory(fail:true);using var client=factory.CreateClient();using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(Request,Encoding.UTF8,"application/json"));Assert.Equal(HttpStatusCode.InternalServerError,response.StatusCode);Assert.DoesNotContain("do-not-expose",await response.Content.ReadAsStringAsync());Assert.Contains("application/problem+json",response.Content.Headers.ContentType!.ToString());
     }
+    [SqlServerFact,Trait("Category","SqlServer")]
+    public async Task Exhausted_database_retries_return_failure_instead_of_a_price()
+    {
+        await using var db = await SqlServerFixture.CreateAsync();
+        await RetrySqlFaults.InstallAsync(db, "dbo.usp_PriceList_GetEligible", 100);
+        await using var factory = new Factory(realConnection: db.ConnectionString);
+        using var client = factory.CreateClient();
+        using var response = await client.PostAsync("/api/pricing/calculate", new StringContent(Request, Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(json.TryGetProperty("finalAmount", out _));
+        await db.SqlAsync("IF (SELECT COUNT(*) FROM dbo.RetryProbe)<>3 THROW 50000,'HTTP read did not exhaust exactly three attempts.',1;");
+    }
+
     [SqlServerFact,Trait("Category","SqlServer")]
     public async Task Promotion_catalog_is_reused_across_HTTP_requests_until_refresh()
     {
