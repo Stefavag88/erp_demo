@@ -1,16 +1,24 @@
 namespace ERP.Discounts.Application.Validation;
+
 public static class CouponCodeNormalizer
 {
     public static IReadOnlyList<string> Normalize(IReadOnlyList<string> codes)
     {
-        if (codes is null) throw Invalid();
+        if (codes is null) 
+            throw Invalid();
+
         var result = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var input in codes)
         {
             var code = input?.Trim().ToUpperInvariant();
-            if (code is null || code.Length is < 1 or > 64 || !IsAlphaNumeric(code[0]) || code.Any(c => !IsAlphaNumeric(c) && c != '_' && c != '-')) throw Invalid();
-            if (seen.Add(code)) result.Add(code);
+
+            if (code is null || code.Length is < 1 or > 64 || !IsAlphaNumeric(code[0]) || code.Any(c => !IsAlphaNumeric(c) && c != '_' && c != '-')) 
+                throw Invalid();
+
+            if (seen.Add(code)) 
+                result.Add(code);
         }
         return result.AsReadOnly();
     }

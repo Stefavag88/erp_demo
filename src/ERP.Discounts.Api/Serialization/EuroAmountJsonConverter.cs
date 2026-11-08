@@ -12,7 +12,9 @@ public sealed class EuroAmountJsonConverter : JsonConverter<decimal>
     public override decimal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var document = JsonDocument.ParseValue(ref reader);
-        if (document.RootElement.ValueKind != JsonValueKind.Number) throw InvalidAmount();
+        if (document.RootElement.ValueKind != JsonValueKind.Number) 
+            throw InvalidAmount();
+
         var token = document.RootElement.GetRawText();
         var exponentIndex = token.IndexOfAny(['e', 'E']);
         var mantissa = exponentIndex < 0 ? token : token[..exponentIndex];
@@ -21,16 +23,31 @@ public sealed class EuroAmountJsonConverter : JsonConverter<decimal>
         var digits = mantissa.TrimStart('-').Replace(".", "", StringComparison.Ordinal).TrimStart('0');
 
         // Any spelling of mathematical zero is exact, including a signed zero.
-        if (digits.Length == 0) return 0m;
-        if (token[0] == '-') throw InvalidAmount();
+        if (digits.Length == 0) 
+            return 0m;
+
+        if (token[0] == '-')
+            throw InvalidAmount();
+
         long exponent = 0;
-        if (exponentIndex >= 0 && !long.TryParse(token.AsSpan(exponentIndex + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out exponent)) throw InvalidAmount();
+        if (exponentIndex >= 0 && 
+            !long.TryParse(token.AsSpan(exponentIndex + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out exponent)) 
+            throw InvalidAmount();
+
         // Bounds avoid overflow in scale arithmetic without allocating powers of ten.
-        if (exponent < -(long)token.Length - 2 || exponent > (long)token.Length + 19) throw InvalidAmount();
+        if (exponent < -(long)token.Length - 2 || 
+            exponent > (long)token.Length + 19) 
+            throw InvalidAmount();
+
         var significant = digits.TrimEnd('0');
         var decimalPower = exponent - fractionalDigits + digits.Length - significant.Length;
-        if (decimalPower < -2 || significant.Length + decimalPower > 17) throw InvalidAmount();
-        if (!decimal.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out var amount) || amount > 99999999999999999.99m) throw InvalidAmount();
+
+        if (decimalPower < -2 || significant.Length + decimalPower > 17)
+            throw InvalidAmount();
+
+        if (!decimal.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out var amount) || amount > 99999999999999999.99m) 
+            throw InvalidAmount();
+
         return amount;
     }
 
