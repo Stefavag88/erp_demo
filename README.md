@@ -14,11 +14,12 @@ dotnet build ERP.Discounts.sln
 # For Windows LocalDB, if needed:
 SqlLocalDB start MSSQLLocalDB
 .\sql\Deploy.ps1
-$env:ConnectionStrings__Discounts = 'Server=(localdb)\MSSQLLocalDB;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true'
 dotnet run --project src/ERP.Discounts.Api --no-launch-profile --urls http://localhost:5080
 ```
 
-TrustServerCertificate and the script's sqlcmd -C flag are local-demo conveniences. For a remote instance configure a validated server certificate. Keep credentials out of appsettings and Git; environment configuration can also be replaced with .NET user secrets. The API requires ConnectionStrings:Discounts at startup and exposes one pricing endpoint.
+appsettings.json provides a local default under ConnectionStrings:Discounts: `Server=(localdb)\MSSQLLocalDB;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;`. It uses the current Windows identity and contains no password. Run the SQL scripts first to create and seed that database; the API does not create it automatically. The key is Discounts because Program.cs reads GetConnectionString("Discounts"), rather than DefaultConnection.
+
+For another server/database, override it with `$env:ConnectionStrings__Discounts = 'your connection string'` or .NET user secrets. TrustServerCertificate and the script's sqlcmd -C flag are local-demo conveniences. For a remote instance configure a validated server certificate. Keep actual passwords out of appsettings and Git. The API requires a nonblank ConnectionStrings:Discounts value at startup and exposes one pricing endpoint.
 
 Database objects come exclusively from these SQL scripts, in order:
 
