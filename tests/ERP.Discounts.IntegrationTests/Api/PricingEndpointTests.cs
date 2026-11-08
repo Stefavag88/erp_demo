@@ -77,6 +77,38 @@ public class PricingEndpointTests
         await using var factory=new Factory();using var client=factory.CreateClient();using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(Request.Replace("EUR","USD"),Encoding.UTF8,"application/json"));
         var json=await response.Content.ReadFromJsonAsync<JsonElement>();Assert.Equal(HttpStatusCode.BadRequest,response.StatusCode);Assert.True(json.GetProperty("errors").TryGetProperty("currency",out _));
     }
+    [Theory]
+    [InlineData("1.00000000000000000000000000001")]
+    [InlineData("-0.00000000000000000000000000001")]
+    [InlineData("99999999999999999.990000000001")]
+    [InlineData("1e-3")]
+    [InlineData("-1e-29")]
+    [InlineData("1e17")]
+    [InlineData("1e2147483648")]
+    public async Task Rejects_exact_numeric_tokens_that_decimal_binding_would_round(string amount)
+    {
+        await using var factory=new Factory();using var client=factory.CreateClient();
+        using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(Request.Replace("340.00",amount),Encoding.UTF8,"application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest,response.StatusCode);
+        var json=await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(json.GetProperty("errors").TryGetProperty("originalAmount",out _));
+    }
+    [Theory]
+    [InlineData("340.000","340")]
+    [InlineData("3.4e2","340")]
+    [InlineData("1e-2","0.01")]
+    [InlineData("0e99999999999999999999","0")]
+    [InlineData("-0.000","0")]
+    [InlineData("9.999999999999999999e16","99999999999999999.99")]
+    public async Task Accepts_exact_cents_with_trailing_zeros_and_exponents(string amount,string expectedText)
+    {
+        var expected=decimal.Parse(expectedText,System.Globalization.CultureInfo.InvariantCulture);
+        await using var factory=new Factory();using var client=factory.CreateClient();
+        var body=Request.Replace("340.00",amount).Replace("customer-001","unknown").Replace("WELCOME10","UNKNOWN");
+        using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(body,Encoding.UTF8,"application/json"));
+        Assert.Equal(HttpStatusCode.OK,response.StatusCode);
+        var json=await response.Content.ReadFromJsonAsync<JsonElement>();Assert.Equal(expected,json.GetProperty("originalAmount").GetDecimal());Assert.Equal(expected,json.GetProperty("finalAmount").GetDecimal());
+    }
     [Fact]
     public async Task Database_failure_is_500_and_hides_exception_details()
     {

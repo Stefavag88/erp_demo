@@ -148,12 +148,12 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Produces spec records/enums/interfaces, shared normalization/validation signatures and a PricingValidationException carrying field-specific errors. Application references Domain; UnitTests references both.
 
-- [ ] Create the minimal projects/solution and xUnit harness required for these contracts. Use `.sln` explicitly if the SDK defaults to `.slnx`. Initialize Git only at implementation time if still absent.
-- [ ] Write theories asserting enum values/defaults, valid zero/EUR requests, blank/overlength IDs, negative/overprecision/oversized amounts, unsupported currency, null collections/elements, malformed codes, and `[' welcome10 ', 'WELCOME10'] -> ['WELCOME10']`. Assert caller-owned arrays cannot alter normalized codes.
-- [ ] Run `dotnet test tests/ERP.Discounts.UnitTests --filter "FullyQualifiedName~ContractTests|FullyQualifiedName~PricingRequestValidationTests|FullyQualifiedName~CouponCodeNormalizerTests"`; verify missing-contract/behavior failures.
-- [ ] Implement only models, request validation and shared normalization; preserve exact spec record names and defaults. Returned validation errors identify fields.
-- [ ] Run `dotnet build ERP.Discounts.sln` and `dotnet test tests/ERP.Discounts.UnitTests`; expect success.
-- [ ] Stage only this task's files; commit `feat: add discount domain and pricing contracts`.
+- [x] Create the minimal projects/solution and xUnit harness required for these contracts. Use `.sln` explicitly if the SDK defaults to `.slnx`. Initialize Git only at implementation time if still absent.
+- [x] Write theories asserting enum values/defaults, valid zero/EUR requests, blank/overlength IDs, negative/overprecision/oversized amounts, unsupported currency, null collections/elements, malformed codes, and `[' welcome10 ', 'WELCOME10'] -> ['WELCOME10']`. Assert caller-owned arrays cannot alter normalized codes.
+- [x] Run `dotnet test tests/ERP.Discounts.UnitTests --filter "FullyQualifiedName~ContractTests|FullyQualifiedName~PricingRequestValidationTests|FullyQualifiedName~CouponCodeNormalizerTests"`; verify missing-contract/behavior failures.
+- [x] Implement only models, request validation and shared normalization; preserve exact spec record names and defaults. Returned validation errors identify fields.
+- [x] Run `dotnet build ERP.Discounts.sln` and `dotnet test tests/ERP.Discounts.UnitTests`; expect success.
+- [x] Stage only this task's files; commit `feat: add discount domain and pricing contracts`.
 
 ### Task 2 / Commit 02: Pure discount calculator
 
@@ -161,7 +161,7 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Consumes ResolvedDiscount/enums; produces `Calculate(decimal, decimal, ResolvedDiscount) -> DiscountCalculation` above. No Application reference or injected services.
 
-- [ ] Write tests: `(340,340,5% current) -> (340,17,323)`; `(340,323,10% original) -> (340,34,289)`; fixed 10 on 290.70 -> `(null,10,280.70)`; 5% of .10 -> .01 (away from zero); original 100/current 20/50% original -> deduction 20/final 0. Assert fixed effective-base convention, zero/current-zero results and totals.
+- [x] Write tests: `(340,340,5% current) -> (340,17,323)`; `(340,323,10% original) -> (340,34,289)`; fixed 10 on 290.70 -> `(null,10,280.70)`; 5% of .10 -> .01 (away from zero); original 100/current 20/50% original -> deduction 20/final 0. Assert fixed effective-base convention, zero/current-zero results and totals.
 
   Representative exact assertion (the rest of the cases above use the same shape):
 
@@ -175,11 +175,11 @@ Every task below is one intended implementation commit, containing its tests and
   Assert.Equal(0m, result.PriceAfter);
   ```
 
-- [ ] Add rejection theories for null discount, unknown method/base/type, negative value, >100 percentage, negative original/current, current > original, blank ID/name, and non-money original/current inputs. Fixed values above the current amount must cap, not fail.
-- [ ] Run `dotnet test tests/ERP.Discounts.UnitTests --filter FullyQualifiedName~DiscountCalculatorTests`; expect failures before implementation.
-- [ ] Implement validation then the spec's exact calculation order: choose base, calculate, round, cap, subtract. Return null percentage base for fixed amounts. Guard decimal arithmetic against malformed values rather than swallowing overflow.
-- [ ] Run the accumulated unit suite; expect all passing.
-- [ ] Commit `feat: implement deterministic discount arithmetic`.
+- [x] Add rejection theories for null discount, unknown method/base/type, negative value, >100 percentage, negative original/current, current > original, blank ID/name, and non-money original/current inputs. Fixed values above the current amount must cap, not fail.
+- [x] Run `dotnet test tests/ERP.Discounts.UnitTests --filter FullyQualifiedName~DiscountCalculatorTests`; expect failures before implementation.
+- [x] Implement validation then the spec's exact calculation order: choose base, calculate, round, cap, subtract. Return null percentage base for fixed amounts. Guard decimal arithmetic against malformed values rather than swallowing overflow.
+- [x] Run the accumulated unit suite; expect all passing.
+- [x] Commit `feat: implement deterministic discount arithmetic`.
 
 ### Task 3 / Commit 03: Deterministic engine ordering and breakdown
 
@@ -187,12 +187,12 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Implements IDiscountEngine using spec provider contract and calculator. Produces globally numbered AppliedDiscount rows and PricingResult; central GetPriority throws for unknown types.
 
-- [ ] Write tests registering Coupon/Promotion/PriceList out of order: deductions 17,32.30,10; before/after 340/323/290.70/280.70; total 59.30; sequences 1,2,3. Original promotion variant must yield 279 and total 61. Assert fixed output base CurrentAmount with null CalculationBaseAmount.
-- [ ] Write same-category tests using equal priorities and IDs `B`, `a`, `A`; expect ordinal `A`, `B`, `a`; lower priority first. Test no providers/no discounts, multiple results per category, duplicate categories, unknown categories, wrong returned type, duplicate IDs within category, null result/items and invalid resolved values. Preserve IDs duplicated across different categories.
-- [ ] Run `dotnet test tests/ERP.Discounts.UnitTests --filter FullyQualifiedName~DiscountEngineTests`; verify failures.
-- [ ] Implement preflight provider registration validation, category-level materialization/validation and sorting, sequential calculation, immutable output and totals from original minus final. Do not add repository calls.
-- [ ] Run accumulated unit tests; assert both totals identities for all successful engine fixtures.
-- [ ] Commit `feat: orchestrate ordered discount application`.
+- [x] Write tests registering Coupon/Promotion/PriceList out of order: deductions 17,32.30,10; before/after 340/323/290.70/280.70; total 59.30; sequences 1,2,3. Original promotion variant must yield 279 and total 61. Assert fixed output base CurrentAmount with null CalculationBaseAmount.
+- [x] Write same-category tests using equal priorities and IDs `B`, `a`, `A`; expect ordinal `A`, `B`, `a`; lower priority first. Test no providers/no discounts, multiple results per category, duplicate categories, unknown categories, wrong returned type, duplicate IDs within category, null result/items and invalid resolved values. Preserve IDs duplicated across different categories.
+- [x] Run `dotnet test tests/ERP.Discounts.UnitTests --filter FullyQualifiedName~DiscountEngineTests`; verify failures.
+- [x] Implement preflight provider registration validation, category-level materialization/validation and sorting, sequential calculation, immutable output and totals from original minus final. Do not add repository calls.
+- [x] Run accumulated unit tests; assert both totals identities for all successful engine fixtures.
+- [x] Commit `feat: orchestrate ordered discount application`.
 
 ### Task 4 / Commit 04: Engine stage context, time and failure behavior
 
@@ -200,12 +200,12 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Same engine API; tightens context snapshot, validation and cancellation guarantees without introducing a new abstraction.
 
-- [ ] Write tests proving provider invoked exactly once, promotion sees 323, coupon sees 290.70, and two promotions eligible at category entry both use the same entry context even after the first lowers the balance below a threshold.
-- [ ] Add tests: advancing clock read exactly once; every context receives identical UTC instant; captured history cannot be changed by subsequent discounts; caller mutation cannot change codes/history; providers after a zero balance still run. Assert invalid request invokes no providers, cancellation reaches provider and propagates, and provider failure returns no successful result. Run two concurrent calculations with different requests to detect shared mutable state.
-- [ ] Run `dotnet test tests/ERP.Discounts.UnitTests --filter FullyQualifiedName~DiscountEngineContextTests`; verify the newly unimplemented guarantees fail.
-- [ ] Implement request normalization at entry, cancellation checks before provider calls/application, one GetUtcNow call, stage snapshots and local state only. Propagate provider exceptions unaltered.
-- [ ] Run accumulated unit tests; expect success.
-- [ ] Commit `feat: enforce pricing stage and evaluation context`.
+- [x] Write tests proving provider invoked exactly once, promotion sees 323, coupon sees 290.70, and two promotions eligible at category entry both use the same entry context even after the first lowers the balance below a threshold.
+- [x] Add tests: advancing clock read exactly once; every context receives identical UTC instant; captured history cannot be changed by subsequent discounts; caller mutation cannot change codes/history; providers after a zero balance still run. Assert invalid request invokes no providers, cancellation reaches provider and propagates, and provider failure returns no successful result. Run two concurrent calculations with different requests to detect shared mutable state.
+- [x] Run `dotnet test tests/ERP.Discounts.UnitTests --filter FullyQualifiedName~DiscountEngineContextTests`; verify the newly unimplemented guarantees fail.
+- [x] Implement request normalization at entry, cancellation checks before provider calls/application, one GetUtcNow call, stage snapshots and local state only. Propagate provider exceptions unaltered.
+- [x] Run accumulated unit tests; expect success.
+- [x] Commit `feat: enforce pricing stage and evaluation context`.
 
 ### Task 5 / Commit 05: Price-list provider and repository contract
 
@@ -213,11 +213,11 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Produces the price-list repository signature/read model above. Provider Type=PriceList; maps each eligible discount definition using GUID D-form ID and repository fields.
 
-- [ ] Write tests for zero/one/multiple definitions; preserve method/base/value/priority; pass customer ID, exact AsOfUtc and cancellation token; propagate repository failure. Assert values originate from definitions.
-- [ ] Run filtered PriceListDiscountProviderTests; verify failure.
-- [ ] Implement provider and typed contract. Eligibility by assignments/active lists is the repository's SQL responsibility; do not perform calculations here.
-- [ ] Run accumulated unit tests; expect success.
-- [ ] Commit `feat: resolve customer price list discounts`.
+- [x] Write tests for zero/one/multiple definitions; preserve method/base/value/priority; pass customer ID, exact AsOfUtc and cancellation token; propagate repository failure. Assert values originate from definitions.
+- [x] Run filtered PriceListDiscountProviderTests; verify failure.
+- [x] Implement provider and typed contract. Eligibility by assignments/active lists is the repository's SQL responsibility; do not perform calculations here.
+- [x] Run accumulated unit tests; expect success.
+- [x] Commit `feat: resolve customer price list discounts`.
 
 ### Task 6 / Commit 06: Segment-dependent promotion provider
 
@@ -225,12 +225,12 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Produces segment/promotion interfaces and records above. Provider consumes stage-entry context and emits Type=Promotion discounts with rate-specific method/value.
 
-- [ ] Write tests for GOLD 10%, SILVER 5%, absent profile/rate -> empty; 200 meets minimum and 199.99 does not. Original 340/current 190 is ineligible for minimum 200. All candidates use one stage-entry amount.
-- [ ] Test nullable time bounds; start inclusive, end exclusive; inactive definitions excluded even when a fake returns them; segment match is ordinal over canonical stored codes; duplicate rate rows fail. Test multiple promotions, percentage/fixed resolution, timestamps/token forwarding and both repositories' exception propagation.
-- [ ] Run filtered PromotionDiscountProviderTests; expect failure.
-- [ ] Implement repository composition, defensive eligibility checks in C#, matching-rate resolution and result mapping. Use context.AsOfUtc only; no clock or HTTP client. A missing profile can short-circuit the promotion query.
-- [ ] Run accumulated unit tests; expect success.
-- [ ] Commit `feat: resolve promotions from customer segment rates`.
+- [x] Write tests for GOLD 10%, SILVER 5%, absent profile/rate -> empty; 200 meets minimum and 199.99 does not. Original 340/current 190 is ineligible for minimum 200. All candidates use one stage-entry amount.
+- [x] Test nullable time bounds; start inclusive, end exclusive; inactive definitions excluded even when a fake returns them; segment match is ordinal over canonical stored codes; duplicate rate rows fail. Test multiple promotions, percentage/fixed resolution, timestamps/token forwarding and both repositories' exception propagation.
+- [x] Run filtered PromotionDiscountProviderTests; expect failure.
+- [x] Implement repository composition, defensive eligibility checks in C#, matching-rate resolution and result mapping. Use context.AsOfUtc only; no clock or HTTP client. A missing profile can short-circuit the promotion query.
+- [x] Run accumulated unit tests; expect success.
+- [x] Commit `feat: resolve promotions from customer segment rates`.
 
 ### Task 7 / Commit 07: Coupon provider
 
@@ -238,11 +238,11 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Produces coupon contract above; uses shared normalizer. Type=Coupon. Empty normalized input returns empty without a database call.
 
-- [ ] Write tests for trim/uppercase/distinct, malformed rejection before lookup, empty input short-circuit, zero/multiple matches, identity/value mapping, exact customer/time/token forwarding and persistence exception propagation.
-- [ ] Run filtered CouponDiscountProviderTests; verify failure.
-- [ ] Implement provider using typed definitions; query only, no redemption/write behavior.
-- [ ] Run accumulated unit tests, including fake-backed engine demo through all three real providers; expect final 280.70.
-- [ ] Commit `feat: resolve normalized coupon discounts`.
+- [x] Write tests for trim/uppercase/distinct, malformed rejection before lookup, empty input short-circuit, zero/multiple matches, identity/value mapping, exact customer/time/token forwarding and persistence exception propagation.
+- [x] Run filtered CouponDiscountProviderTests; verify failure.
+- [x] Implement provider using typed definitions; query only, no redemption/write behavior.
+- [x] Run accumulated unit tests, including fake-backed engine demo through all three real providers; expect final 280.70.
+- [x] Commit `feat: resolve normalized coupon discounts`.
 
 ### Task 8 / Commit 08: Dapper infrastructure and price-list/segment repositories
 
@@ -250,11 +250,11 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Implements existing repository interfaces. SQL strings are case-sensitive whitelist mapped (`Percentage`, `FixedAmount`, `CurrentAmount`, `OriginalAmount`); unknown strings and non-UTC/invalid data fail clearly. DATETIME2 reads become DateTimeOffset with explicit UTC, never local conversion.
 
-- [ ] Write opt-in real-Dapper tests for assigned/missing customer, multiple definitions, segment/no segment, null windows and stored enum mapping. Add data-mapping tests in IntegrationTests that need no connection for unknown enum strings and UTC conversion. Keep the UnitTests project infrastructure-free.
-- [ ] Run mapping tests; verify missing mapping behavior fails. Real-SQL tests cannot yet run against project scripts; record that dependency explicitly.
-- [ ] Implement parameterized CommandDefinition calls with CommandType.StoredProcedure and cancellation, opening/disposal per operation. Use only `dbo.usp_PriceList_GetEligible` and `dbo.usp_CustomerDiscountProfile_GetSegment`; never connection-returning interfaces or inline SELECT.
-- [ ] Build solution, run accumulated unit tests and no-SQL mapping tests. Verify opt-in SQL tests are visibly skipped when no test connection is provided.
-- [ ] Commit `feat: add Dapper price list and segment repositories`.
+- [x] Write opt-in real-Dapper tests for assigned/missing customer, multiple definitions, segment/no segment, null windows and stored enum mapping. Add data-mapping tests in IntegrationTests that need no connection for unknown enum strings and UTC conversion. Keep the UnitTests project infrastructure-free.
+- [x] Run mapping tests; verify missing mapping behavior fails. Real-SQL tests cannot yet run against project scripts; record that dependency explicitly.
+- [x] Implement parameterized CommandDefinition calls with CommandType.StoredProcedure and cancellation, opening/disposal per operation. Use only `dbo.usp_PriceList_GetEligible` and `dbo.usp_CustomerDiscountProfile_GetSegment`; never connection-returning interfaces or inline SELECT.
+- [x] Build solution, run accumulated unit tests and no-SQL mapping tests. Verify opt-in SQL tests are visibly skipped when no test connection is provided.
+- [x] Commit `feat: add Dapper price list and segment repositories`.
 
 ### Task 9 / Commit 09: Promotion and coupon Dapper repositories
 
@@ -262,11 +262,11 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Implements existing promotion/coupon contracts. Promotion procedure returns two ordered result sets: definitions, then rate rows keyed by PromotionId. Coupon TVP has one `Code NVARCHAR(64)` column and is sent as `dbo.CouponCodeList`.
 
-- [ ] Write tests for grouping multiple promotions/rates, no promotions, null timestamps, malformed enum failures, duplicate/orphan rate detection, zero/one/many codes and preserving typed TVP metadata. Full SQL tests remain pending until Task 13; pure mapper/TVP tests can run now.
-- [ ] Run no-SQL mapping/TVP tests; verify failures.
-- [ ] Implement QueryMultipleAsync with CommandDefinition for `dbo.usp_Promotion_GetActiveDefinitions`; assemble detached typed definitions. Implement `dbo.usp_Coupon_GetEligible` with parameterized CustomerId, UTC AsOfUtc and a DataTable-backed TVP. Do not construct SQL text from codes.
-- [ ] Build solution; run unit and no-SQL mapping/TVP tests. Review every production database call for stored-procedure command type and cancellation/disposal.
-- [ ] Commit `feat: add Dapper promotion and coupon repositories`.
+- [x] Write tests for grouping multiple promotions/rates, no promotions, null timestamps, malformed enum failures, duplicate/orphan rate detection, zero/one/many codes and preserving typed TVP metadata. Full SQL tests remain pending until Task 13; pure mapper/TVP tests can run now.
+- [x] Run no-SQL mapping/TVP tests; verify failures.
+- [x] Implement QueryMultipleAsync with CommandDefinition for `dbo.usp_Promotion_GetActiveDefinitions`; assemble detached typed definitions. Implement `dbo.usp_Coupon_GetEligible` with parameterized CustomerId, UTC AsOfUtc and a DataTable-backed TVP. Do not construct SQL text from codes.
+- [x] Build solution; run unit and no-SQL mapping/TVP tests. Review every production database call for stored-procedure command type and cancellation/disposal.
+- [x] Commit `feat: add Dapper promotion and coupon repositories`.
 
 ### Task 10 / Commit 10: SQL database and domain tables
 
@@ -274,11 +274,11 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Default database `ERPDiscounts`; use SQLCMD `DatabaseName` substitution from the first script so the same scripts can provision a generated test database. Document manual defaults and SSMS SQLCMD mode. Eight spec tables, exact essential columns/types/relationships. String enum columns use explicit check constraints and a case-sensitive collation or binary comparisons so invalid casing is rejected. Null date bounds allowed; when both exist require start < end.
 
-- [ ] Add opt-in constraint tests asserting invalid negative/>100 percentages, unknown enums, invalid windows and fixed/original combinations fail; valid zero values and nullable bounds succeed. Include multirow INSERT/UPDATE and both sides of promotion/rate cross-table invariant.
-- [ ] On a dedicated disposable SQL database, run the test setup before scripts exist and verify missing schema failure; never point it at an existing user database.
-- [ ] Implement guarded database creation, explicit USE/GO and tables with PKs/internal FKs/checks. Add set-based fixed/base invariant triggers on Promotions and PromotionSegmentRates. Do not add external customer FKs or unrelated tables. Provisioning is one-time; repeating schema creation may fail clearly; seed will be repeatable.
-- [ ] Execute scripts 000 and 001 with `sqlcmd -b`, then run filtered schema tests against disposable SQL Server if available; otherwise report SQL verification pending and perform script review only. Build/unit checks must still pass.
-- [ ] Commit `feat: define SQL discount domain schema`.
+- [x] Add opt-in constraint tests asserting invalid negative/>100 percentages, unknown enums, invalid windows and fixed/original combinations fail; valid zero values and nullable bounds succeed. Include multirow INSERT/UPDATE and both sides of promotion/rate cross-table invariant.
+- [x] On a dedicated disposable SQL database, run the test setup before scripts exist and verify missing schema failure; never point it at an existing user database.
+- [x] Implement guarded database creation, explicit USE/GO and tables with PKs/internal FKs/checks. Add set-based fixed/base invariant triggers on Promotions and PromotionSegmentRates. Do not add external customer FKs or unrelated tables. Provisioning is one-time; repeating schema creation may fail clearly; seed will be repeatable.
+- [x] Execute scripts 000 and 001 with `sqlcmd -b`, then run filtered schema tests against disposable SQL Server if available; otherwise report SQL verification pending and perform script review only. Build/unit checks must still pass.
+- [x] Commit `feat: define SQL discount domain schema`.
 
 ### Task 11 / Commit 11: Indexes and coupon table-valued type
 
@@ -286,11 +286,11 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** `dbo.CouponCodeList(Code NVARCHAR(64) NOT NULL PRIMARY KEY)` with consistent code collation; coupon unique normalized code index; assignment/FK lookup indexes.
 
-- [ ] Add SQL tests proving normalized duplicate coupons rejected, unnormalized/blank/malformed codes rejected, and TVP accepts deduplicated 64-character codes. CustomerPriceLists has composite PK(CustomerId,PriceListId); CouponCustomerEligibility has PK(CouponId,CustomerId); PromotionSegmentRates has PK(PromotionId,SegmentCode).
-- [ ] Run tests before 002 to expose missing type/index behavior when SQL is available.
-- [ ] Implement indexes supporting customer assignment, parent discount lookup and coupon code/allow-list lookup; avoid redundant indexes on existing PK prefixes. Enforce uppercase/trimmed coupon shape using binary/case-sensitive checks consistent with the C# ASCII policy.
-- [ ] Apply 002 with sqlcmd -b and rerun focused tests if SQL is available; otherwise record pending SQL verification.
-- [ ] Commit `feat: add discount indexes and coupon TVP`.
+- [x] Add SQL tests proving normalized duplicate coupons rejected, unnormalized/blank/malformed codes rejected, and TVP accepts deduplicated 64-character codes. CustomerPriceLists has composite PK(CustomerId,PriceListId); CouponCustomerEligibility has PK(CouponId,CustomerId); PromotionSegmentRates has PK(PromotionId,SegmentCode).
+- [x] Run tests before 002 to expose missing type/index behavior when SQL is available.
+- [x] Implement indexes supporting customer assignment, parent discount lookup and coupon code/allow-list lookup; avoid redundant indexes on existing PK prefixes. Enforce uppercase/trimmed coupon shape using binary/case-sensitive checks consistent with the C# ASCII policy.
+- [x] Apply 002 with sqlcmd -b and rerun focused tests if SQL is available; otherwise record pending SQL verification.
+- [x] Commit `feat: add discount indexes and coupon TVP`.
 
 ### Task 12 / Commit 12: Stored procedures and repeatable demo data
 
@@ -298,12 +298,12 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Implement the four exact procedure names/parameters from the spec; use DATETIME2(7) AsOfUtc inputs and fixed SQL result column aliases matching row DTOs. Profile procedure takes only CustomerId. Promotion procedure returns definitions then rates, preserving one coherent selection within the procedure.
 
-- [ ] Add integration assertions for start/end windows, assigned active price lists/discounts, promotion rates, coupon allow-list (no rows -> unrestricted, matching row -> allowed, other customer -> excluded). Use a fixed AsOfUtc fixture with rows around boundary instants.
-- [ ] Run focused integration tests before procedures/seed to confirm missing behavior when SQL exists.
-- [ ] Implement CREATE OR ALTER procedures; price-list and coupon queries own SQL filtering; promotion returns active time-valid candidates with rates and leaves segment/minimum composition to C#. Use parameters, no GETUTCDATE for eligibility, no final pricing arithmetic. Ensure the two promotion result sets use the same selected definition IDs.
-- [ ] Seed fixed GUIDs, customer-001/GOLD, one 5% list, one current-base promotion (GOLD 10/SILVER 5, min 200) and WELCOME10 fixed 10. Leave demo validity unbounded. Use a transaction and idempotent update/insert by stable keys; no broad table deletion. Add separate customers/codes for zero/multiple/restricted examples without changing customer-001's result.
-- [ ] Apply 003 and 004 twice with sqlcmd -b; verify stable counts/values and focused repository tests when SQL is available. Run accumulated unit tests regardless.
-- [ ] Commit `feat: add discount procedures and repeatable demo seed`.
+- [x] Add integration assertions for start/end windows, assigned active price lists/discounts, promotion rates, coupon allow-list (no rows -> unrestricted, matching row -> allowed, other customer -> excluded). Use a fixed AsOfUtc fixture with rows around boundary instants.
+- [x] Run focused integration tests before procedures/seed to confirm missing behavior when SQL exists.
+- [x] Implement CREATE OR ALTER procedures; price-list and coupon queries own SQL filtering; promotion returns active time-valid candidates with rates and leaves segment/minimum composition to C#. Use parameters, no GETUTCDATE for eligibility, no final pricing arithmetic. Ensure the two promotion result sets use the same selected definition IDs.
+- [x] Seed fixed GUIDs, customer-001/GOLD, one 5% list, one current-base promotion (GOLD 10/SILVER 5, min 200) and WELCOME10 fixed 10. Leave demo validity unbounded. Use a transaction and idempotent update/insert by stable keys; no broad table deletion. Add separate customers/codes for zero/multiple/restricted examples without changing customer-001's result.
+- [x] Apply 003 and 004 twice with sqlcmd -b; verify stable counts/values and focused repository tests when SQL is available. Run accumulated unit tests regardless.
+- [x] Commit `feat: add discount procedures and repeatable demo seed`.
 
 ### Task 13 / Commit 13: Complete SQL-backed integration verification
 
@@ -311,12 +311,12 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Environment variable `ERP_DISCOUNTS_TEST_CONNECTION` points to a dedicated test SQL Server connection with provisioning rights. Fixture creates only `ERPDiscounts_Test_<guid>` databases and invokes the unchanged scripts through sqlcmd with the DatabaseName substitution introduced in Task 10. Use a sqlcmd wrapper default of ERPDiscounts rather than a script-level `:setvar` that overrides the caller's `-v DatabaseName=...`. Never log connection strings/secrets.
 
-- [ ] Complete the script runner/fixture when the first SQL test requires it (Tasks 8–12); this commit consolidates coverage rather than withholding necessary test setup. Application code never runs DDL. Use sqlcmd for schema/assertion fixtures and Dapper stored procedures for real runtime paths.
-- [ ] Add end-to-end real-provider/repository engine tests for 280.70/59.30/three rows, SILVER resolution, no discounts and deterministic multiple returns. Exercise all four real procedures, nullable/enum/time mapping, boundary dates, TVP injection-like malformed input rejection and customer restriction behavior.
-- [ ] Run schema, repository and pipeline tests against a disposable database; verify seed reruns and failure propagation from unavailable SQL. Fix failures in the owning components with tests; do not substitute SQLite or mocks for integration coverage.
-- [ ] Restrict cleanup to the exact generated test database after checking its generated name/prefix; cleanup occurs in finally/disposal, not against configured production names. Disable parallelism for tests that mutate shared fixture rows, or isolate their databases.
-- [ ] Run `dotnet build ERP.Discounts.sln`, `dotnet test tests/ERP.Discounts.UnitTests`, and `dotnet test tests/ERP.Discounts.IntegrationTests --filter "Category=SqlServer"`. Record SQL tests as skipped/pending if unavailable, with reason; do not present skip as a pass.
-- [ ] Commit `test: verify SQL Server discount pipeline`.
+- [x] Complete the script runner/fixture when the first SQL test requires it (Tasks 8–12); this commit consolidates coverage rather than withholding necessary test setup. Application code never runs DDL. Use sqlcmd for schema/assertion fixtures and Dapper stored procedures for real runtime paths.
+- [x] Add end-to-end real-provider/repository engine tests for 280.70/59.30/three rows, SILVER resolution, no discounts and deterministic multiple returns. Exercise all four real procedures, nullable/enum/time mapping, boundary dates, TVP injection-like malformed input rejection and customer restriction behavior.
+- [x] Run schema, repository and pipeline tests against a disposable database; verify seed reruns and failure propagation from unavailable SQL. Fix failures in the owning components with tests; do not substitute SQLite or mocks for integration coverage.
+- [x] Restrict cleanup to the exact generated test database after checking its generated name/prefix; cleanup occurs in finally/disposal, not against configured production names. Disable parallelism for tests that mutate shared fixture rows, or isolate their databases.
+- [x] Run `dotnet build ERP.Discounts.sln`, `dotnet test tests/ERP.Discounts.UnitTests`, and `dotnet test tests/ERP.Discounts.IntegrationTests --filter "Category=SqlServer"`. Record SQL tests as skipped/pending if unavailable, with reason; do not present skip as a pass.
+- [x] Commit `test: verify SQL Server discount pipeline`.
 
 ### Task 14 / Commit 14: Thin Minimal API and transport tests
 
@@ -324,11 +324,11 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** POST /api/pricing/calculate uses spec request/result JSON names; serialize enums as names using JsonStringEnumConverter. Register singleton TimeProvider.System/calculator; scoped engine/providers/repositories; connection string `ConnectionStrings:Discounts` required with no embedded credentials.
 
-- [ ] Add WebApplicationFactory tests overriding repository contracts with in-memory fakes: valid request -> 200/280.70/59.30/full ordered breakdown; empty eligibility -> 200/empty; invalid fields/null/overprecision -> 400 with field errors; malformed JSON -> 400. Simulated database failure -> 500 problem response with no secret details, never 200/unchanged price. These tests need no SQL and run under `Category=Api`.
-- [ ] Run `dotnet test tests/ERP.Discounts.IntegrationTests --filter "Category=Api"`; verify missing endpoint/behavior failures.
-- [ ] Implement HTTP binding, service invocation, cancellation propagation and error mapping only. Distinguish PricingValidationException (400) from malformed persisted/provider data (500); do not catch broad exceptions and return a price. Return generic ProblemDetails for infrastructure failure. Expose Program for factory tests without adding extra business endpoints.
-- [ ] Run build, accumulated unit tests and API tests; when SQL exists, run API against seeded DB and send samples/pricing.http to verify the real HTTP demo yields 280.70. Record actual response and status.
-- [ ] Commit `feat: expose pricing calculation Minimal API`.
+- [x] Add WebApplicationFactory tests overriding repository contracts with in-memory fakes: valid request -> 200/280.70/59.30/full ordered breakdown; empty eligibility -> 200/empty; invalid fields/null/overprecision -> 400 with field errors; malformed JSON -> 400. Simulated database failure -> 500 problem response with no secret details, never 200/unchanged price. These tests need no SQL and run under `Category=Api`.
+- [x] Run `dotnet test tests/ERP.Discounts.IntegrationTests --filter "Category=Api"`; verify missing endpoint/behavior failures.
+- [x] Implement HTTP binding, service invocation, cancellation propagation and error mapping only. Distinguish PricingValidationException (400) from malformed persisted/provider data (500); do not catch broad exceptions and return a price. Return generic ProblemDetails for infrastructure failure. Expose Program for factory tests without adding extra business endpoints.
+- [x] Run build, accumulated unit tests and API tests; when SQL exists, run API against seeded DB and send samples/pricing.http to verify the real HTTP demo yields 280.70. Record actual response and status.
+- [x] Commit `feat: expose pricing calculation Minimal API`.
 
 ### Task 15 / Commit 15: Setup guide and assignment verification
 
@@ -336,11 +336,11 @@ Every task below is one intended implementation commit, containing its tests and
 
 **Interfaces:** Documentation provides exact setup order and commands for the shipped projects; no new runtime capabilities.
 
-- [ ] Write prerequisite/setup commands for .NET 10 and SQL Server, SQLCMD mode for SSMS, scripts 000–004 with sqlcmd -b, connection configuration through environment variables/user-secrets, API startup and sample request/response. Explain that provisioning rights are needed for setup/test fixture, while runtime account only executes required procedures/types.
-- [ ] Describe stage-entry eligibility, sequential ordering, current/original bases, rounding/caps, validation assumptions, local customer data ownership, no redemption/persistence, and lack of transactional snapshot across provider reads. Keep future features discussion-only.
-- [ ] Document separate commands for UnitTests, no-SQL IntegrationTests filters (`Category=Mapping|Category=Api`) and opt-in SQL tests (`Category=SqlServer`). Ensure categories are applied consistently and no default test silently connects to SQL.
-- [ ] Run build, unit, mapping and API suites; run SQL suite and real HTTP sample when SQL is available. Inspect dependency references and search Infrastructure production code for inline SQL/CommandType.Text; confirm every runtime DB call uses stored procedures. Inspect forbidden-feature checklist.
-- [ ] Record command outcomes and any unavailable SQL checks honestly. Commit `docs: document discount setup and verification` only after documentation matches actual behavior.
+- [x] Write prerequisite/setup commands for .NET 10 and SQL Server, SQLCMD mode for SSMS, scripts 000–004 with sqlcmd -b, connection configuration through environment variables/user-secrets, API startup and sample request/response. Explain that provisioning rights are needed for setup/test fixture, while runtime account only executes required procedures/types.
+- [x] Describe stage-entry eligibility, sequential ordering, current/original bases, rounding/caps, validation assumptions, local customer data ownership, no redemption/persistence, and lack of transactional snapshot across provider reads. Keep future features discussion-only.
+- [x] Document separate commands for UnitTests, no-SQL IntegrationTests filters (`Category=Mapping|Category=Api`) and opt-in SQL tests (`Category=SqlServer`). Ensure categories are applied consistently and no default test silently connects to SQL.
+- [x] Run build, unit, mapping and API suites; run SQL suite and real HTTP sample when SQL is available. Inspect dependency references and search Infrastructure production code for inline SQL/CommandType.Text; confirm every runtime DB call uses stored procedures. Inspect forbidden-feature checklist.
+- [x] Record command outcomes and any unavailable SQL checks honestly. Commit `docs: document discount setup and verification` only after documentation matches actual behavior.
 
 ## Task gates and acceptance coverage
 
@@ -359,6 +359,6 @@ Every task below is one intended implementation commit, containing its tests and
 
 Reviewed against all specification sections: no planned scope gaps. The money/code validation policy, malformed-result policy and promotion cross-table constraint are explicit proposals for review. Interface names/types above govern all commits; the two-result-set promotion SQL contract is shared by repository and procedure tasks. Five review-focus risks have corresponding owning tests.
 
-This plan defines 15 intended implementation commits. It has not executed them. SQL integration acceptance remains conditional on an available real SQL Server; sqlcmd installation alone does not establish that availability. No build/test success is claimed for the future implementation.
+Execution completed natively on 2026-11-08: all 15 implementation increments were committed separately, followed by a final-review numeric-token validation fix. The final build has zero warnings/errors; 72 unit and 42 mapping/API/SQL tests passed with no skips. A real Kestrel request returned 280.70. See docs/verification.md for evidence and execution decisions.
 
-Review this plan before implementation. Native execution is a reasonable default because the tasks share tightly specified interfaces and are deliberately sequential; subagent-driven execution is an alternative if independent per-task review is preferred. Choosing a method does not change the commit boundaries or test gates.
+The user approved native execution. A final independent read-only whole-branch review found one Important numeric-token validation issue, which was reproduced, fixed and verified in one follow-up pass. No Critical or actionable Minor findings remain. Tests were consolidated into component-focused files where useful; the original task names and interface boundaries remain the implementation sequence.

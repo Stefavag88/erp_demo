@@ -8,12 +8,14 @@ using ERP.Discounts.Infrastructure.Data;
 using ERP.Discounts.Infrastructure.Repositories;
 using ERP.Discounts.Api.Endpoints;
 using ERP.Discounts.Api.Errors;
+using ERP.Discounts.Api.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("Discounts");
 if (string.IsNullOrWhiteSpace(connectionString)) throw new InvalidOperationException("Configure ConnectionStrings:Discounts before starting the API.");
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
+    options.SerializerOptions.Converters.Add(new EuroAmountJsonConverter());
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
     options.SerializerOptions.RespectRequiredConstructorParameters = true;
 });
