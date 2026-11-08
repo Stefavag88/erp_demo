@@ -116,6 +116,27 @@ public class PricingEndpointTests
         await using var factory=new Factory(fail:true);using var client=factory.CreateClient();using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(Request,Encoding.UTF8,"application/json"));Assert.Equal(HttpStatusCode.InternalServerError,response.StatusCode);Assert.DoesNotContain("do-not-expose",await response.Content.ReadAsStringAsync());Assert.Contains("application/problem+json",response.Content.Headers.ContentType!.ToString());
     }
     [SqlServerFact,Trait("Category","SqlServer")]
+    public async Task Promotion_catalog_is_reused_across_HTTP_requests_until_refresh()
+    {
+        await using var db = await SqlServerFixture.CreateAsync();
+        await using var factory = new Factory(realConnection: db.ConnectionString);
+        using var client = factory.CreateClient();
+        await AssertDemoAsync(client);
+        await db.SqlAsync("UPDATE r SET Value=20 FROM dbo.PromotionSegmentRates r JOIN dbo.Promotions p ON p.Id=r.PromotionId WHERE p.Name='Segment Promotion' AND r.SegmentCode='GOLD';");
+
+        // A second HTTP request uses the same singleton cached snapshot (10%).
+        await AssertDemoAsync(client);
+
+        // Another application instance starts with its own empty cache (20%).
+        await using var freshFactory = new Factory(realConnection: db.ConnectionString);
+        using var freshClient = freshFactory.CreateClient();
+        using var response = await freshClient.PostAsync("/api/pricing/calculate", new StringContent(Request, Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(248.40m, json.GetProperty("finalAmount").GetDecimal());
+    }
+
+    [SqlServerFact,Trait("Category","SqlServer")]
     public async Task HTTP_demo_uses_seeded_SQL_Server()
     {
         await using var db=await SqlServerFixture.CreateAsync();await using var factory=new Factory(realConnection:db.ConnectionString);using var client=factory.CreateClient();await AssertDemoAsync(client);

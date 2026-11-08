@@ -9,6 +9,8 @@ using ERP.Discounts.Domain;
 using ERP.Discounts.Infrastructure.Data;
 using ERP.Discounts.Infrastructure.Repositories;
 using ERP.Discounts.Infrastructure.Providers;
+using ERP.Discounts.Infrastructure.Caching;
+using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,12 +29,16 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<PricingValidationExceptionHandler>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddMemoryCache();
 
 builder.Services.AddSingleton(new SqlConnectionFactory(connectionString));
 
 //repositories
 builder.Services.AddScoped<IPriceListRepository, DapperPriceListRepository>();
-builder.Services.AddScoped<IPromotionRepository, DapperPromotionRepository>();
+builder.Services.AddSingleton<DapperPromotionRepository>();
+builder.Services.AddSingleton<IPromotionRepository>(services => new CachedPromotionRepository(
+    services.GetRequiredService<DapperPromotionRepository>(),
+    services.GetRequiredService<IMemoryCache>()));
 builder.Services.AddScoped<ICouponRepository, DapperCouponRepository>();
 
 //providers

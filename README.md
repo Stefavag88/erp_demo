@@ -118,7 +118,7 @@ Invalid requests return 400; application validation supplies field-specific Prob
 
 ## Tests
 
-Unit tests have no SQL/infrastructure reference. Mapping and fake-backed API tests also run without SQL:
+Unit tests have no SQL/infrastructure reference. Mapping, memory-cache and fake-backed API tests also run without SQL:
 
 ```powershell
 dotnet test tests/ERP.Discounts.UnitTests
@@ -143,8 +143,8 @@ SQL tests exercise CHECK/foreign-key constraints, TVP/allow-lists, repeatable se
 
 - Domain contains immutable records and the pure calculator. Application contains request validation, engine, providers and typed repository interfaces. Infrastructure owns Dapper row DTOs/mappings and SQL connections. API owns DI, HTTP binding and error responses. Dependencies point inward.
 - Providers run once in central priority order (100 PriceList, 200 Promotion, 300 Coupon), independent of DI/enum order. Same-category discounts sort by priority then ordinal ID; GUID IDs use lowercase D format. Each provider sees the remaining amount/history at category entry. Eligibility is not re-evaluated between discounts within a category; all eligible discounts stack.
-- One injected TimeProvider sample supplies every temporal query and C# promotion validity check. Stored windows are nullable, UTC and half-open. Explicit DateTime2 parameters preserve boundary instants; DATETIME2 columns store milliseconds. A common time does not provide a transactional database snapshot across provider reads, so concurrent administrative edits may affect different categories differently.
-- Promotion resolution combines the segment supplied by ICustomerSegmentProvider with active definitions/rates from the discount database. The same promotion resolves GOLD=10% and SILVER=5%; minimum 200 uses the stage-entry remaining amount. The repository uses two result sets selected coherently in the procedure. Stored procedures do not calculate prices or order the cross-category pipeline.
+- One injected TimeProvider sample supplies the price-list/coupon temporal queries and the C# promotion validity checks. Stored windows are nullable, UTC and half-open. Explicit DateTime2 parameters preserve query boundary instants; DATETIME2 columns store milliseconds. The promotion catalog query is independent of evaluation time. A common time does not provide a transactional database snapshot across provider reads, so concurrent administrative edits may affect different categories differently.
+- Promotion resolution combines the segment supplied by ICustomerSegmentProvider with cached definitions/rates from the discount database. The same promotion resolves GOLD=10% and SILVER=5%; minimum 200 uses the stage-entry remaining amount. The repository uses two result sets selected coherently in the procedure. The provider evaluates active flags, time windows, segment and minimum amount on every request. Stored procedures do not calculate prices or order the cross-category pipeline.
 - The calculator uses decimal, rounds each requested deduction to cents AwayFromZero and caps it at the remaining amount. A percentage can use original or current amount independently of execution order. Original 100, fixed 80, then 50% of original deducts only 20 and ends at zero. Fixed discounts report CurrentAmount with null calculationBaseAmount. Zero deductions remain in the breakdown.
 - Nonblank opaque IDs are preserved, limited to 64 characters. Original money must be nonnegative, numerically two-decimal EUR and fit DECIMAL(19,2), max 99999999999999999.99. The API validates the exact JSON numeric token before decimal conversion to prevent silent input rounding; equivalent trailing zeros and exponent notation remain accepted. Coupon codes trim, uppercase invariantly, deduplicate ordinally and allow 1–64 ASCII letters/digits/underscores/hyphens starting with a letter/digit. Null lists/elements fail; empty lists work. Request/history/result collections are defensive snapshots.
 - Unknown/duplicate provider categories and malformed resolved discounts fail clearly. Missing categories are allowed by the reusable engine; the API registers all three. Duplicate discount IDs within a category fail; identities across different categories are independent. No per-request state is stored on the engine.
@@ -152,11 +152,27 @@ SQL tests exercise CHECK/foreign-key constraints, TVP/allow-lists, repeatable se
 
 Customer segmentation is external information behind Application's ICustomerSegmentProvider. The API registers an Infrastructure DummyCustomerSegmentProvider: customer-001 maps to GOLD, customer-002 to SILVER, customer-multi to BRONZE, and other IDs return no segment. These fixed demo assignments are isolated in that adapter; the application contains no customer classification logic and performs no segment database lookup. PromotionSegmentRates remains in SQL because promotion rates are discount rules. Replacing the dummy with another source requires implementing the same interface and changing DI registration; no external client is implemented here.
 
-Local price-list assignments remain discount-domain facts with no external Customers FK. OrderId is correlation only. This assignment has no result persistence, coupon reservation/redemption, line allocations, tax/shipping, auth, external calls, bus, cache or background workers. Production requirements would need a separate design rather than infrastructure added speculatively here.
+Local price-list assignments remain discount-domain facts with no external Customers FK. OrderId is correlation only. This assignment has no result persistence, coupon reservation/redemption, line allocations, tax/shipping, auth, external calls, message bus or background workers. Caching is limited to the promotion catalog described below. Production requirements would need a separate design rather than infrastructure added speculatively here.
 
 This segment-provider boundary supersedes the original specification's local CustomerDiscountProfiles design by explicit user agreement; see [the scope decision](docs/decisions/2026-11-08-external-customer-segments.md). Provisioning scripts create no profile table or segment procedure and seed no profile assignments. As with other schema changes, use a fresh database containing the current schema.
 
 The user also approved [moving calculation bases to promotion rates](docs/decisions/2026-11-08-promotion-rate-bases.md), replacing the original promotion-wide base and trigger design. The engine, calculator and public HTTP contract are unchanged.
+
+## Promotion definition cache
+
+The approved [cache decision](docs/decisions/2026-11-08-promotion-definition-cache.md) adds a small in-memory demonstration:
+
+```text
+PromotionDiscountProvider -> CachedPromotionRepository -> DapperPromotionRepository -> SQL Server
+```
+
+The API registers IMemoryCache and a singleton decorator. A hit returns an immutable catalog snapshot without querying SQL; a miss loads through the Dapper repository. One async lock prevents concurrent misses from issuing duplicate loads. Empty successful catalogs are cached; failures and cancelled loads propagate and are not cached. Caller cancellation is also honored on cache hits. Each operation of the singleton Dapper repository opens/disposes its own connection; no SQL connection is retained across requests.
+
+The catalog has a **60-second absolute expiration**, measured from successful loading. Hits do not extend its lifetime. Definition edits become visible on a subsequent refresh, eviction or application restart; each API process has its own cache. No invalidation endpoint, background refresh or distributed cache is implemented. The cache never stores PricingResult or resolved per-customer discounts. Price-list, coupon and segment lookups remain uncached.
+
+The repository contract is GetDefinitionsAsync(CancellationToken), backed by dbo.usp_Promotion_GetDefinitions without an AsOfUtc parameter. The query returns all definitions and rate rows, including scheduled, expired and inactive candidates. Keeping their windows in the snapshot allows the provider to enforce start-inclusive/end-exclusive eligibility on each request even while the cache stays warm. Stage-entry amount and customer segment are evaluated each time too. Known time windows remain accurate; administrative changes to those windows/flags/rates can remain stale until refresh.
+
+No settings are needed for the demonstration. Tests named CachedPromotionRepositoryTests advance the cache clock without sleeps to verify expiration, and cover concurrent misses, immutable snapshots, empty results, failure retry and cancellation. SQL-backed tests verify one catalog read across changing request contexts; HTTP tests update a rate and show that the running app retains its snapshot while a second app instance loads the new value.
 
 Future discussion: a new category adds a provider/repository/tables and a priority-policy entry; external sources can sit behind a provider dependency. Per-line allocation, exclusive stacking, per-discount eligibility, multiple currencies, customer synchronization, result storage or message processing require explicit contract/policy redesign as described in the specification.
 

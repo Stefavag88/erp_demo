@@ -42,8 +42,12 @@
 **Files:** Infrastructure/Caching/CachedPromotionRepository.cs, Infrastructure csproj, API Program.cs, IntegrationTests/Caching/CachedPromotionRepositoryTests.cs, cached SQL/HTTP tests, README and verification record.
 **Interfaces:** CachedPromotionRepository(IPromotionRepository inner, IMemoryCache cache) implements IPromotionRepository and IDisposable. API singleton registration composes the concrete Dapper repository without recursive interface resolution.
 
-- [ ] Write/run failing tests for hits, 60-second absolute expiry, empty results, failure retry, cancellation, concurrent misses, defensive snapshots and isolated decorator keys.
-- [ ] Implement the decorator with cache-aside loading and async lock; add the built-in memory-cache dependency and singleton DI composition.
-- [ ] Verify warm cached definitions respect time/segment/minimum boundaries; verify HTTP requests reuse the same catalog.
-- [ ] Build, run all suites and real Kestrel smoke; document TTL/staleness/process scope and the existing unrelated failure.
-- [ ] Review the change, commit, and report verification honestly.
+- [x] Write/run failing tests for hits, 60-second absolute expiry, empty results, failure retry, cancellation, concurrent misses, defensive snapshots and isolated decorator keys.
+- [x] Implement the decorator with cache-aside loading and async lock; add the built-in memory-cache dependency and singleton DI composition.
+- [x] Verify warm cached definitions respect time/segment/minimum boundaries; verify HTTP requests reuse the same catalog.
+- [x] Build, run all suites and real Kestrel smoke; document TTL/staleness/process scope and the existing unrelated failure.
+- [x] Review the change, commit, and report verification honestly.
+
+## Execution result
+
+Executed natively: catalog boundary committed as 408a340; cache implementation follows in its own commit. Nine cache regressions went RED to GREEN. All 63 integration tests passed against fresh SQL Server; the full unit suite retains 73 passes and its one documented pre-existing engine failure. Build and Kestrel smoke passed. Independent read-only review found no blocking or actionable minor issues.
