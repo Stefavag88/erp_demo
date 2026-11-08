@@ -6,10 +6,10 @@ using ERP.Discounts.Application.Contracts;
 using ERP.Discounts.Application.Providers;
 using ERP.Discounts.Application.Repositories;
 using ERP.Discounts.Domain;
-using ERP.Discounts.Infrastructure.Data;
-using ERP.Discounts.Infrastructure.Repositories;
-using ERP.Discounts.Infrastructure.Providers;
 using ERP.Discounts.Infrastructure.Caching;
+using ERP.Discounts.Infrastructure.Data;
+using ERP.Discounts.Infrastructure.Providers;
+using ERP.Discounts.Infrastructure.Repositories;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json.Serialization;
 

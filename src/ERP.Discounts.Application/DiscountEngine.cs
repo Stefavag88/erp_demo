@@ -50,7 +50,10 @@ public sealed class DiscountEngine(IEnumerable<IDiscountProvider> providers, Dis
                     throw new InvalidOperationException("Malformed provider discount.", ex);
                 }
 
-                var calculationMethod = discount.CalculationMethod == CalculationMethod.FixedAmount ? CalculationBase.CurrentAmount : discount.CalculationBase;
+                var calculationMethod = discount.CalculationMethod == CalculationMethod.FixedAmount 
+                    ? CalculationBase.CurrentAmount 
+                    : discount.CalculationBase;
+
                 AppliedDiscount appliedDiscount = new(
                     applied.Count + 1, 
                     discount.Id, 

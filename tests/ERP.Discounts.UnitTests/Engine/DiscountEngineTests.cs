@@ -4,11 +4,14 @@ using ERP.Discounts.Domain;
 using ERP.Discounts.Domain.Enums;
 using ERP.Discounts.Domain.Models;
 using ERP.Discounts.UnitTests.Fakes;
+
 namespace ERP.Discounts.UnitTests.Engine;
+
 public class DiscountEngineTests
 {
     internal static DiscountEngine Engine(params IDiscountProvider[] providers) => new(providers, new DiscountCalculator(), TimeProvider.System);
     internal static ResolvedDiscount D(string id, DiscountType type, decimal value, int priority = 0, CalculationBase basis = CalculationBase.CurrentAmount) => new(id, id, type, type == DiscountType.Coupon ? CalculationMethod.FixedAmount : CalculationMethod.Percentage, value, priority, basis);
+
     [Theory]
     [InlineData(CalculationBase.CurrentAmount, 280.70, 59.30)]
     [InlineData(CalculationBase.OriginalAmount, 279.00, 61.00)]

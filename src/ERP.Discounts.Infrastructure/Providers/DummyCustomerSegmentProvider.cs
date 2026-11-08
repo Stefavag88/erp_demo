@@ -9,7 +9,7 @@ public sealed class DummyCustomerSegmentProvider : ICustomerSegmentProvider
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Task.FromResult<string?>(customerId switch
+        return Task.FromResult(customerId switch
         {
             "customer-001" => "GOLD",
             "customer-002" => "SILVER",

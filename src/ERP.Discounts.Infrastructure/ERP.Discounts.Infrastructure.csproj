@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../ERP.Discounts.Application/ERP.Discounts.Application.csproj" />
+
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.14" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+
     <InternalsVisibleTo Include="ERP.Discounts.IntegrationTests" />
   </ItemGroup>
 </Project>

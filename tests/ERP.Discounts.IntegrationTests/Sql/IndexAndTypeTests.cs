@@ -1,4 +1,5 @@
 namespace ERP.Discounts.IntegrationTests.Sql;
+
 [Trait("Category","SqlServer")]
 public class IndexAndTypeTests
 {
