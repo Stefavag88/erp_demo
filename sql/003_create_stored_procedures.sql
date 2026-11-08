@@ -14,18 +14,17 @@ BEGIN
       AND (p.EndsAtUtc IS NULL OR @AsOfUtc<p.EndsAtUtc);
 END;
 GO
-CREATE OR ALTER PROCEDURE dbo.usp_Promotion_GetActiveDefinitions @AsOfUtc datetime2(7)
+CREATE OR ALTER PROCEDURE dbo.usp_Promotion_GetDefinitions
 AS
 BEGIN
     SET NOCOUNT ON;
+    -- Cacheable catalog: eligibility is evaluated per request by the C# provider.
     -- Materialize definitions and rates together so both result sets share one selection.
     SELECT p.Id,p.Name,p.MinimumCurrentAmount,p.PriorityWithinType,p.IsActive,p.StartsAtUtc,p.EndsAtUtc,
            r.SegmentCode,r.CalculationMethod,r.CalculationBase,r.Value
     INTO #Candidates
     FROM dbo.Promotions p
-    LEFT JOIN dbo.PromotionSegmentRates r ON r.PromotionId=p.Id
-    WHERE p.IsActive=1 AND (p.StartsAtUtc IS NULL OR p.StartsAtUtc<=@AsOfUtc)
-      AND (p.EndsAtUtc IS NULL OR @AsOfUtc<p.EndsAtUtc);
+    LEFT JOIN dbo.PromotionSegmentRates r ON r.PromotionId=p.Id;
     SELECT DISTINCT Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc FROM #Candidates ORDER BY Id;
     SELECT Id AS PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value FROM #Candidates WHERE SegmentCode IS NOT NULL ORDER BY Id,SegmentCode;
 END;

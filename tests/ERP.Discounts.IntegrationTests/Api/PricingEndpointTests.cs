@@ -36,7 +36,7 @@ public class PricingEndpointTests
             return Task.FromResult<IReadOnlyList<PriceListDefinition>>(customerId=="unknown"?[]:[new(Guid.Parse("00000011-0000-0000-0000-000000000001"),"Gold Price List",CalculationMethod.Percentage,CalculationBase.CurrentAmount,5,0)]);
         }
         public Task<string?> GetSegmentAsync(string customerId,CancellationToken cancellationToken)=>Task.FromResult<string?>(customerId=="unknown"?null:"GOLD");
-        public Task<IReadOnlyList<PromotionDefinition>> GetActiveDefinitionsAsync(DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<PromotionDefinition>>([new(Guid.Parse("00000021-0000-0000-0000-000000000001"),"Segment Promotion",200,0,true,null,null,[new("GOLD",CalculationMethod.Percentage,10)])]);
+        public Task<IReadOnlyList<PromotionDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<PromotionDefinition>>([new(Guid.Parse("00000021-0000-0000-0000-000000000001"),"Segment Promotion",200,0,true,null,null,[new("GOLD",CalculationMethod.Percentage,10)])]);
         public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(string customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<CouponDefinition>>(codes.Contains("WELCOME10")?[new(Guid.Parse("00000031-0000-0000-0000-000000000001"),"WELCOME10","WELCOME10",CalculationMethod.FixedAmount,CalculationBase.CurrentAmount,10,0)]:[]);
     }
     private const string Request = """{"orderId":"ORD-123","customerId":"customer-001","originalAmount":340.00,"currency":"EUR","couponCodes":["WELCOME10"]}""";

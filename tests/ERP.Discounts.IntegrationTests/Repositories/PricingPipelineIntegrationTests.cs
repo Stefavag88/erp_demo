@@ -52,12 +52,14 @@ public class PricingPipelineIntegrationTests
         foreach(var (time,expected) in new[]{(start.AddTicks(-1),0),(start,1),(end.AddTicks(-1),1),(end,0)})
         {
             Assert.Equal(expected,(await new DapperPriceListRepository(f).GetEligibleAsync("customer-001",time,default)).Count);
-            Assert.Equal(expected,(await new DapperPromotionRepository(f).GetActiveDefinitionsAsync(time,default)).Count(p=>p.Name=="Segment Promotion"));
+            var context = new PricingContext(new PricingRequest("time-test","customer-001",340,"EUR",[]),323,[],time);
+            Assert.Equal(expected,(await new PromotionDiscountProvider(new DummyCustomerSegmentProvider(),new DapperPromotionRepository(f)).GetEligibleAsync(context,default)).Count);
             Assert.Equal(expected,(await new DapperCouponRepository(f).GetEligibleAsync("customer-001",["WELCOME10"],time,default)).Count);
         }
         await db.SqlAsync("UPDATE dbo.PriceLists SET IsActive=0; UPDATE dbo.Promotions SET IsActive=0; UPDATE dbo.Coupons SET IsActive=0;");
         Assert.Empty(await new DapperPriceListRepository(f).GetEligibleAsync("customer-001",start,default));
-        Assert.Empty(await new DapperPromotionRepository(f).GetActiveDefinitionsAsync(start,default));
+        var inactiveContext = new PricingContext(new PricingRequest("inactive-test","customer-001",340,"EUR",[]),323,[],start);
+        Assert.Empty(await new PromotionDiscountProvider(new DummyCustomerSegmentProvider(),new DapperPromotionRepository(f)).GetEligibleAsync(inactiveContext,default));
         Assert.Empty(await new DapperCouponRepository(f).GetEligibleAsync("customer-001",["WELCOME10"],start,default));
     }
     [SqlServerFact]

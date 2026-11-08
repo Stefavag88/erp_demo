@@ -15,7 +15,7 @@ public sealed class PromotionDiscountProvider(ICustomerSegmentProvider segments,
         if (segment is null) 
             return Array.Empty<ResolvedDiscount>();
 
-        var definitions = await promotions.GetActiveDefinitionsAsync(context.AsOfUtc, cancellationToken);
+        var definitions = await promotions.GetDefinitionsAsync(cancellationToken);
         var resolved = new List<ResolvedDiscount>();
 
         foreach (var definition in definitions)
