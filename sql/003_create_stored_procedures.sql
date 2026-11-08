@@ -19,15 +19,15 @@ AS
 BEGIN
     SET NOCOUNT ON;
     -- Materialize definitions and rates together so both result sets share one selection.
-    SELECT p.Id,p.Name,p.CalculationBase,p.MinimumCurrentAmount,p.PriorityWithinType,p.IsActive,p.StartsAtUtc,p.EndsAtUtc,
-           r.SegmentCode,r.CalculationMethod,r.Value
+    SELECT p.Id,p.Name,p.MinimumCurrentAmount,p.PriorityWithinType,p.IsActive,p.StartsAtUtc,p.EndsAtUtc,
+           r.SegmentCode,r.CalculationMethod,r.CalculationBase,r.Value
     INTO #Candidates
     FROM dbo.Promotions p
     LEFT JOIN dbo.PromotionSegmentRates r ON r.PromotionId=p.Id
     WHERE p.IsActive=1 AND (p.StartsAtUtc IS NULL OR p.StartsAtUtc<=@AsOfUtc)
       AND (p.EndsAtUtc IS NULL OR @AsOfUtc<p.EndsAtUtc);
-    SELECT DISTINCT Id,Name,CalculationBase,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc FROM #Candidates ORDER BY Id;
-    SELECT Id AS PromotionId,SegmentCode,CalculationMethod,Value FROM #Candidates WHERE SegmentCode IS NOT NULL ORDER BY Id,SegmentCode;
+    SELECT DISTINCT Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc FROM #Candidates ORDER BY Id;
+    SELECT Id AS PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value FROM #Candidates WHERE SegmentCode IS NOT NULL ORDER BY Id,SegmentCode;
 END;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Coupon_GetEligible

@@ -8,6 +8,6 @@ Infrastructure supplies DummyCustomerSegmentProvider with the existing fixed dem
 
 PromotionSegmentRates remains in the discount database: the subsystem owns the rates a promotion offers to each segment. CustomerDiscountProfiles, its seed assignments, the segment lookup procedure and its Dapper repository are removed from the current implementation/provisioning scripts. Fresh databases contain seven domain tables and three read procedures.
 
-Existing databases are compatible because no runtime code reads legacy profile objects. No existing database/profile data is automatically dropped. Provisioning remains a SQL-script operation; the API never executes DDL.
+The user's subsequent database policy is to use a fresh database for schema changes. No existing database/profile data is automatically dropped. Provisioning remains a SQL-script operation; the API never executes DDL.
 
 Tests cover fixed/unknown dummy values, cancellation, promotion resolution against fake providers, absence of customer-profile objects in freshly provisioned SQL Server, and unchanged GOLD/SILVER/demo results through real SQL repositories and HTTP.

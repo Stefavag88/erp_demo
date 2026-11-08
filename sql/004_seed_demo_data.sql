@@ -30,21 +30,21 @@ ON target.CustomerId=source.CustomerId AND target.PriceListId=source.PriceListId
 WHEN NOT MATCHED THEN INSERT(CustomerId,PriceListId) VALUES(source.CustomerId,source.PriceListId);
 MERGE dbo.Promotions WITH (HOLDLOCK) AS target
 USING (VALUES
-    (N'00000021-0000-0000-0000-000000000001',N'Segment Promotion',N'CurrentAmount',200,0,1,NULL,NULL),
-    (N'00000022-0000-0000-0000-000000000001',N'VIP Fixed Promotion',N'CurrentAmount',0,0,1,NULL,NULL)
-) AS source(Id,Name,CalculationBase,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc)
+    (N'00000021-0000-0000-0000-000000000001',N'Segment Promotion',200,0,1,NULL,NULL),
+    (N'00000022-0000-0000-0000-000000000001',N'VIP Fixed Promotion',0,0,1,NULL,NULL)
+) AS source(Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc)
 ON target.Id=source.Id
-WHEN MATCHED THEN UPDATE SET Name=source.Name,CalculationBase=source.CalculationBase,MinimumCurrentAmount=source.MinimumCurrentAmount,PriorityWithinType=source.PriorityWithinType,IsActive=source.IsActive,StartsAtUtc=source.StartsAtUtc,EndsAtUtc=source.EndsAtUtc
-WHEN NOT MATCHED THEN INSERT(Id,Name,CalculationBase,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc) VALUES(source.Id,source.Name,source.CalculationBase,source.MinimumCurrentAmount,source.PriorityWithinType,source.IsActive,source.StartsAtUtc,source.EndsAtUtc);
+WHEN MATCHED THEN UPDATE SET Name=source.Name,MinimumCurrentAmount=source.MinimumCurrentAmount,PriorityWithinType=source.PriorityWithinType,IsActive=source.IsActive,StartsAtUtc=source.StartsAtUtc,EndsAtUtc=source.EndsAtUtc
+WHEN NOT MATCHED THEN INSERT(Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc) VALUES(source.Id,source.Name,source.MinimumCurrentAmount,source.PriorityWithinType,source.IsActive,source.StartsAtUtc,source.EndsAtUtc);
 MERGE dbo.PromotionSegmentRates WITH (HOLDLOCK) AS target
 USING (VALUES
-    (N'00000021-0000-0000-0000-000000000001',N'GOLD',N'Percentage',10),
-    (N'00000021-0000-0000-0000-000000000001',N'SILVER',N'Percentage',5),
-    (N'00000022-0000-0000-0000-000000000001',N'VIP',N'FixedAmount',15)
-) AS source(PromotionId,SegmentCode,CalculationMethod,Value)
+    (N'00000021-0000-0000-0000-000000000001',N'GOLD',N'Percentage',N'CurrentAmount',10),
+    (N'00000021-0000-0000-0000-000000000001',N'SILVER',N'Percentage',N'CurrentAmount',5),
+    (N'00000022-0000-0000-0000-000000000001',N'VIP',N'FixedAmount',N'CurrentAmount',15)
+) AS source(PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value)
 ON target.PromotionId=source.PromotionId AND target.SegmentCode=source.SegmentCode
-WHEN MATCHED THEN UPDATE SET CalculationMethod=source.CalculationMethod,Value=source.Value
-WHEN NOT MATCHED THEN INSERT(PromotionId,SegmentCode,CalculationMethod,Value) VALUES(source.PromotionId,source.SegmentCode,source.CalculationMethod,source.Value);
+WHEN MATCHED THEN UPDATE SET CalculationMethod=source.CalculationMethod,CalculationBase=source.CalculationBase,Value=source.Value
+WHEN NOT MATCHED THEN INSERT(PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value) VALUES(source.PromotionId,source.SegmentCode,source.CalculationMethod,source.CalculationBase,source.Value);
 MERGE dbo.Coupons WITH (HOLDLOCK) AS target
 USING (VALUES
     (N'00000031-0000-0000-0000-000000000001',N'WELCOME10',N'WELCOME10',N'FixedAmount',N'CurrentAmount',10,0,1,NULL,NULL),

@@ -7,7 +7,8 @@ internal sealed class PromotionRateRow
     public Guid PromotionId { get; set; }
     public string SegmentCode { get; set; } = "";
     public string CalculationMethod { get; set; } = "";
+    public string CalculationBase { get; set; } = "";
     public decimal Value { get; set; }
 
-    internal PromotionSegmentRate ToDefinition() => new(SegmentCode,DiscountRowMapper.Method(CalculationMethod),Value);
+    internal PromotionSegmentRate ToDefinition() => new(SegmentCode,DiscountRowMapper.Method(CalculationMethod),Value,DiscountRowMapper.Base(CalculationBase));
 }

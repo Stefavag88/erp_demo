@@ -10,8 +10,25 @@ public class PromotionDiscountProviderTests
     { public Task<string?> GetSegmentAsync(string customerId,CancellationToken cancellationToken) {Assert.Equal("customer-001",customerId);if(fail)throw new IOException();return Task.FromResult(segment);} }
     internal sealed class Promotions(params PromotionDefinition[] rows) : IPromotionRepository
     { public Task<IReadOnlyList<PromotionDefinition>> GetActiveDefinitionsAsync(DateTimeOffset asOfUtc,CancellationToken cancellationToken){Assert.Equal(DateTimeOffset.UnixEpoch,asOfUtc);return Task.FromResult<IReadOnlyList<PromotionDefinition>>(rows);} }
-    internal static PromotionDefinition Definition() => new(Guid.NewGuid(),"Segment promotion",CalculationBase.CurrentAmount,200,0,true,null,null,[new("GOLD",CalculationMethod.Percentage,10),new("SILVER",CalculationMethod.Percentage,5)]);
+    internal static PromotionDefinition Definition() => new(Guid.NewGuid(),"Segment promotion",200,0,true,null,null,[new("GOLD",CalculationMethod.Percentage,10),new("SILVER",CalculationMethod.Percentage,5)]);
     private static PricingContext Context(decimal current=323) => new(PricingRequestValidationTests.Valid(),current,[],DateTimeOffset.UnixEpoch);
+    [Theory]
+    [InlineData("GOLD", CalculationBase.OriginalAmount)]
+    [InlineData("SILVER", CalculationBase.CurrentAmount)]
+    public async Task Uses_the_matching_segment_rate_calculation_base(string segment, CalculationBase expected)
+    {
+        var definition = Definition() with
+        {
+            SegmentRates = [new("GOLD", CalculationMethod.Percentage, 10, CalculationBase.OriginalAmount),
+                            new("SILVER", CalculationMethod.Percentage, 5, CalculationBase.CurrentAmount)]
+        };
+
+        var result = await new PromotionDiscountProvider(new Segments(segment), new Promotions(definition))
+            .GetEligibleAsync(Context(), default);
+
+        Assert.Equal(expected, Assert.Single(result).CalculationBase);
+    }
+
     [Theory]
     [InlineData("GOLD",323,10)] [InlineData("SILVER",200,5)] [InlineData("GOLD",199.99,null)] [InlineData("BRONZE",323,null)] [InlineData(null,323,null)]
     public async Task Resolves_rate_from_segment_and_stage_entry(string? segment,decimal current,int? expected)

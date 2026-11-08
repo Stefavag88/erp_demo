@@ -47,3 +47,13 @@ The user's approved scope change replaces SQL customer-profile lookup with ICust
 - Functional verification restored pinned dependencies from the local cache with NuGetAudit=false. The previously observed NU1902/NU1903 warnings for System.Security.Cryptography.Pkcs 9.0.18 are not resolved; no dependency versions or committed audit policy were changed.
 - Fresh SQL provisioning now creates seven tables and three read procedures. Existing database/profile data was not deleted; legacy objects are unused by the application.
 - The refactor builds with zero compiler warnings/errors after the offline restore. A separate Kestrel smoke against a freshly provisioned disposable database returned HTTP 200, finalAmount 280.70, totalDiscount 59.30 and three discounts; its process and test database were cleaned up.
+
+## Subsequent change: trigger-free promotion rate bases
+
+- TDD: the new provider test initially returned CurrentAmount instead of GOLD's OriginalAmount. The new SQL schema test initially found triggers. Both now pass after moving CalculationBase onto rate rows and replacing the trigger rule with local CHECK constraints.
+- The user specified fresh databases for schema changes. Migration scripts, migration tests and upgrade instructions were removed; verification covers fresh provisioning only.
+- Integration coverage includes mixed-base GOLD/SILVER resolution on the same promotion, fixed/base constraint rejection on INSERT and multirow UPDATE, nullable mappings, a trigger-free schema and seeded HTTP. Only disposable generated databases are changed by these tests.
+- Final integration run: 50 passed, 0 failed, 0 skipped on SQL Server LocalDB after removing all migration-specific code and tests.
+- DiscountEngine.cs and the existing duplicate-provider test remain untouched. The earlier user-edit regression documented above is still outstanding; no complete passing-unit-suite claim is made for this change.
+- Dependency versions and the committed audit policy are unchanged; functional checks use the same cached/offline restore described above.
+- Build: zero warnings/errors. Unit suite: 73 passed, with the same 1 pre-existing duplicate-provider failure out of 74. The two new segment-base cases pass. Kestrel smoke: HTTP 200, finalAmount 280.70, totalDiscount 59.30 and three discounts, using a fresh trigger-free disposable SQL database. Existing user databases were not upgraded automatically.

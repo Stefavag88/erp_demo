@@ -23,7 +23,7 @@ TrustServerCertificate and the script's sqlcmd -C flag are local-demo convenienc
 Database objects come exclusively from these SQL scripts, in order:
 
 1. 000_create_database.sql — guarded database creation.
-2. 001_create_tables.sql — seven domain tables, constraints and promotion invariant triggers.
+2. 001_create_tables.sql — seven domain tables and ordinary CHECK/foreign-key constraints; no triggers.
 3. 002_create_indexes_and_types.sql — lookup indexes, normalized coupon uniqueness and CouponCodeList TVP.
 4. 003_create_stored_procedures.sql — three CREATE OR ALTER read procedures.
 5. 004_seed_demo_data.sql — transactional, repeatable stable-key upserts.
@@ -36,6 +36,8 @@ To run manually:
 sqlcmd -S '(localdb)\MSSQLLocalDB' -E -C -b -v DatabaseName=ERPDiscounts -i sql/000_create_database.sql
 # Repeat this command for 001, 002, 003 and 004 in order.
 ```
+
+Schema changes assume a fresh database. Provision the current schema with scripts 000–004; no upgrade or migration workflow is provided. Use a new database name when trying a changed schema, for example `./sql/Deploy.ps1 -DatabaseName ERPDiscountsDemo2`, and point the API connection string at it.
 
 In SSMS enable **Query > SQLCMD Mode** and supply `:setvar DatabaseName ERPDiscounts` at the top of each execution. In command-line mode always pass `-v DatabaseName=...`; scripts intentionally do not override that value. Provisioning/test setup requires database-creation privileges. A runtime principal needs only EXECUTE on the three procedures and EXECUTE/REFERENCES on dbo.CouponCodeList, with normal same-owner procedure/table ownership chaining; it needs no DDL or table-write rights. No runtime path deploys schema.
 
@@ -126,7 +128,7 @@ Remove-Item Env:ERP_DISCOUNTS_TEST_CONNECTION
 
 Without this variable, SQL tests visibly skip. With it, connection/setup errors fail tests. The fixture provisions only generated ERPDiscounts_Test_<guid> databases and cleans up only its exact generated database after validating its name. It never drops the database named in your connection string. sqlcmd must support your authentication choice; the fixture supports integrated authentication or SQL user/password and passes SQL passwords via SQLCMDPASSWORD rather than command-line arguments. Tests can run against any compatible dedicated SQL Server; they are not replaced with SQLite.
 
-SQL tests exercise constraints/triggers, TVP/allow-lists, repeatable seed, all three real repositories, nullable/enum/time mapping, exact validity boundaries, GOLD/SILVER and multiple eligibility, connection failures and the complete API/engine pipeline. They also verify that the database has no customer-profile table or segment-lookup procedure. The SQL fixture runs provisioning/assertion SQL through sqlcmd; every application runtime database operation remains a stored-procedure Dapper command.
+SQL tests exercise CHECK/foreign-key constraints, TVP/allow-lists, repeatable seed, all three real repositories, nullable/enum/time mapping, exact validity boundaries, GOLD/SILVER and multiple eligibility, connection failures and the complete API/engine pipeline. They verify that fresh databases have no triggers, customer-profile table or segment-lookup procedure. Every SQL test provisions a fresh disposable database. The SQL fixture runs provisioning/assertion SQL through sqlcmd; every application runtime database operation remains a stored-procedure Dapper command.
 
 ## Design and trade-offs
 
@@ -137,13 +139,15 @@ SQL tests exercise constraints/triggers, TVP/allow-lists, repeatable seed, all t
 - The calculator uses decimal, rounds each requested deduction to cents AwayFromZero and caps it at the remaining amount. A percentage can use original or current amount independently of execution order. Original 100, fixed 80, then 50% of original deducts only 20 and ends at zero. Fixed discounts report CurrentAmount with null calculationBaseAmount. Zero deductions remain in the breakdown.
 - Nonblank opaque IDs are preserved, limited to 64 characters. Original money must be nonnegative, numerically two-decimal EUR and fit DECIMAL(19,2), max 99999999999999999.99. The API validates the exact JSON numeric token before decimal conversion to prevent silent input rounding; equivalent trailing zeros and exponent notation remain accepted. Coupon codes trim, uppercase invariantly, deduplicate ordinally and allow 1–64 ASCII letters/digits/underscores/hyphens starting with a letter/digit. Null lists/elements fail; empty lists work. Request/history/result collections are defensive snapshots.
 - Unknown/duplicate provider categories and malformed resolved discounts fail clearly. Missing categories are allowed by the reusable engine; the API registers all three. Duplicate discount IDs within a category fail; identities across different categories are independent. No per-request state is stored on the engine.
-- There is no central Discounts table. Fixed-promotion invariants span the parent calculation base and child rate method, so two narrow, set-based triggers enforce both mutation directions. SQL check constraints enforce the remaining enum/value/window rules.
+- There is no central Discounts table. PromotionSegmentRates owns the complete instruction: segment, CalculationMethod, Value and CalculationBase. A promotion's segments may use different calculation bases. Since method and base now live on the same row, a normal CHECK requires CurrentAmount for fixed amounts; no trigger is needed. Promotions retains shared eligibility, validity and priority. GUID identifiers and the (PromotionId,SegmentCode) key are unchanged.
 
 Customer segmentation is external information behind Application's ICustomerSegmentProvider. The API registers an Infrastructure DummyCustomerSegmentProvider: customer-001 maps to GOLD, customer-002 to SILVER, customer-multi to BRONZE, and other IDs return no segment. These fixed demo assignments are isolated in that adapter; the application contains no customer classification logic and performs no segment database lookup. PromotionSegmentRates remains in SQL because promotion rates are discount rules. Replacing the dummy with another source requires implementing the same interface and changing DI registration; no external client is implemented here.
 
 Local price-list assignments remain discount-domain facts with no external Customers FK. OrderId is correlation only. This assignment has no result persistence, coupon reservation/redemption, line allocations, tax/shipping, auth, external calls, bus, cache or background workers. Production requirements would need a separate design rather than infrastructure added speculatively here.
 
-This segment-provider boundary supersedes the original specification's local CustomerDiscountProfiles design by explicit user agreement; see [the scope decision](docs/decisions/2026-11-08-external-customer-segments.md). Updated provisioning scripts create no profile table or segment procedure and seed no profile assignments. Existing databases can still be used: legacy profile objects are unused and are not automatically dropped, preserving any existing data.
+This segment-provider boundary supersedes the original specification's local CustomerDiscountProfiles design by explicit user agreement; see [the scope decision](docs/decisions/2026-11-08-external-customer-segments.md). Provisioning scripts create no profile table or segment procedure and seed no profile assignments. As with other schema changes, use a fresh database containing the current schema.
+
+The user also approved [moving calculation bases to promotion rates](docs/decisions/2026-11-08-promotion-rate-bases.md), replacing the original promotion-wide base and trigger design. The engine, calculator and public HTTP contract are unchanged.
 
 Future discussion: a new category adds a provider/repository/tables and a priority-policy entry; external sources can sit behind a provider dependency. Per-line allocation, exclusive stacking, per-discount eligibility, multiple currencies, customer synchronization, result storage or message processing require explicit contract/policy redesign as described in the specification.
 

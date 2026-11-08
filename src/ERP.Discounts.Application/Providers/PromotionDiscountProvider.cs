@@ -32,7 +32,7 @@ public sealed class PromotionDiscountProvider(ICustomerSegmentProvider segments,
             var rate = definition.SegmentRates.FirstOrDefault(r => string.Equals(r.SegmentCode, segment, StringComparison.Ordinal));
 
             if (rate is not null)
-                resolved.Add(new(definition.Id.ToString("D"), definition.Name, Type, rate.CalculationMethod, rate.Value, definition.PriorityWithinType, definition.CalculationBase));
+                resolved.Add(new(definition.Id.ToString("D"), definition.Name, Type, rate.CalculationMethod, rate.Value, definition.PriorityWithinType, rate.CalculationBase));
         }
 
         return resolved.AsReadOnly();
