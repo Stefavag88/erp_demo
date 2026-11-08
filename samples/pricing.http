@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:5080
+
+### GOLD: finalAmount 280.70; totalDiscount 59.30
+POST {{baseUrl}}/api/pricing/calculate
+Content-Type: application/json
+
+{
+  "orderId": "ORD-123",
+  "customerId": "customer-001",
+  "originalAmount": 340.00,
+  "currency": "EUR",
+  "couponCodes": ["WELCOME10"]
+}
+
+### SILVER: finalAmount 296.85
+POST {{baseUrl}}/api/pricing/calculate
+Content-Type: application/json
+
+{"orderId":"ORD-124","customerId":"customer-002","originalAmount":340.00,"currency":"EUR","couponCodes":["WELCOME10"]}
+
+### No discounts: finalAmount 340.00
+POST {{baseUrl}}/api/pricing/calculate
+Content-Type: application/json
+
+{"orderId":"ORD-125","customerId":"unknown","originalAmount":340.00,"currency":"EUR","couponCodes":[]}
+
+### Multiple discounts: finalAmount 75.25
+POST {{baseUrl}}/api/pricing/calculate
+Content-Type: application/json
+
+{"orderId":"ORD-126","customerId":"customer-multi","originalAmount":100.00,"currency":"EUR","couponCodes":["WELCOME10","PRIVATE5"]}
