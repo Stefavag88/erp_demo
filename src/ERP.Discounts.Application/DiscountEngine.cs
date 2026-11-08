@@ -31,29 +31,24 @@ public sealed class DiscountEngine(IEnumerable<IDiscountProvider> providers, Dis
 
             var ids = new HashSet<string>(StringComparer.Ordinal);
 
-            //TODO: Merge the 2 foreach's into one
-            foreach (var discount in discounts)
+            foreach (var discount in discounts.OrderBy(d => d?.PriorityWithinType).ThenBy(d => d?.Id, StringComparer.Ordinal))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (discount is null || 
                     discount.Type != provider.Type || 
                     !ids.Add(discount.Id)) 
                     throw new InvalidOperationException("Malformed provider category or duplicate identity.");
 
+                DiscountCalculation calculation;
                 try 
                 { 
-                    calculator.Calculate(request.OriginalAmount, current, discount);
+                    calculation = calculator.Calculate(request.OriginalAmount, current, discount);
                 }
                 catch (ArgumentException ex) 
                 { 
                     throw new InvalidOperationException("Malformed provider discount.", ex);
                 }
-            }
-
-            foreach (var discount in discounts.OrderBy(d => d.PriorityWithinType).ThenBy(d => d.Id, StringComparer.Ordinal))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var calculation = calculator.Calculate(request.OriginalAmount, current, discount);
 
                 var calculationMethod = discount.CalculationMethod == CalculationMethod.FixedAmount ? CalculationBase.CurrentAmount : discount.CalculationBase;
                 AppliedDiscount appliedDiscount = new(
