@@ -3,6 +3,18 @@ namespace ERP.Discounts.IntegrationTests.Sql;
 public class SchemaConstraintTests
 {
     [SqlServerFact]
+    public async Task Enum_columns_use_tinyint_and_reject_unknown_or_null_codes()
+    {
+        await using var db = await SqlServerFixture.CreateAsync();
+        await db.SqlAsync("IF (SELECT COUNT(*) FROM sys.columns c JOIN sys.tables t ON t.object_id=c.object_id JOIN sys.types ty ON ty.user_type_id=c.user_type_id WHERE t.name IN ('PriceListDiscounts','PromotionSegmentRates','Coupons') AND c.name IN ('CalculationMethod','CalculationBase') AND ty.name='tinyint' AND c.is_nullable=0)<>6 THROW 50000,'Expected six nonnullable TINYINT enum columns.',1;");
+
+        foreach (var table in new[] { "PriceListDiscounts", "PromotionSegmentRates", "Coupons" })
+        foreach (var column in new[] { "CalculationMethod", "CalculationBase" })
+        foreach (var invalid in new[] { "0", "3", "255", "NULL" })
+            await Assert.ThrowsAsync<InvalidOperationException>(() => db.SqlAsync($"UPDATE dbo.{table} SET {column}={invalid};"));
+    }
+
+    [SqlServerFact]
     public async Task Promotion_base_belongs_to_rate_rows_without_triggers()
     {
         await using var db = await SqlServerFixture.CreateAsync(1);
@@ -22,14 +34,14 @@ public class SchemaConstraintTests
     {
         await using var db=await SqlServerFixture.CreateAsync(1);
         await db.SqlAsync("INSERT dbo.PriceLists(Id,Name,IsActive) VALUES ('10000000-0000-0000-0000-000000000001',N'List',1);");
-        foreach(var tuple in new[]{"'Percentage','CurrentAmount',-1","'Percentage','CurrentAmount',101","'Other','CurrentAmount',1","'FixedAmount','OriginalAmount',1","'Percentage','Other',1"})
+        foreach(var tuple in new[]{"1,1,-1","1,1,101","3,1,1","2,2,1","1,3,1"})
             await Assert.ThrowsAsync<InvalidOperationException>(()=>db.SqlAsync("INSERT dbo.PriceListDiscounts(Id,PriceListId,Name,CalculationMethod,CalculationBase,Value,IsActive,PriorityWithinType) VALUES(NEWID(),'10000000-0000-0000-0000-000000000001','Bad',"+tuple+",1,0);"));
         await Assert.ThrowsAsync<InvalidOperationException>(()=>db.SqlAsync("INSERT dbo.PriceLists(Id,Name,IsActive,StartsAtUtc,EndsAtUtc) VALUES(NEWID(),'Bad',1,'2026-01-01','2026-01-01');"));
-        await db.SqlAsync("INSERT dbo.Promotions(Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive) VALUES('20000000-0000-0000-0000-000000000001','P',0,0,1); INSERT dbo.PromotionSegmentRates(PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value) VALUES('20000000-0000-0000-0000-000000000001','GOLD','Percentage','OriginalAmount',10),('20000000-0000-0000-0000-000000000001','SILVER','Percentage','CurrentAmount',5),('20000000-0000-0000-0000-000000000001','VIP','FixedAmount','CurrentAmount',0);");
-        foreach(var tuple in new[]{"'FixedAmount','OriginalAmount',1","'Percentage','Unknown',1","'Percentage','CurrentAmount',101","'Percentage','CurrentAmount',-1","'Unknown','CurrentAmount',1"})
+        await db.SqlAsync("INSERT dbo.Promotions(Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive) VALUES('20000000-0000-0000-0000-000000000001','P',0,0,1); INSERT dbo.PromotionSegmentRates(PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value) VALUES('20000000-0000-0000-0000-000000000001','GOLD',1,2,10),('20000000-0000-0000-0000-000000000001','SILVER',1,1,5),('20000000-0000-0000-0000-000000000001','VIP',2,1,0);");
+        foreach(var tuple in new[]{"2,2,1","1,3,1","1,1,101","1,1,-1","3,1,1"})
             await Assert.ThrowsAsync<InvalidOperationException>(()=>db.SqlAsync("INSERT dbo.PromotionSegmentRates(PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value) VALUES('20000000-0000-0000-0000-000000000001','BAD',"+tuple+");"));
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>db.SqlAsync("UPDATE dbo.PromotionSegmentRates SET CalculationMethod='FixedAmount' WHERE SegmentCode='GOLD';"));
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>db.SqlAsync("UPDATE dbo.PromotionSegmentRates SET CalculationBase='OriginalAmount',Value=20;"));
-        await db.SqlAsync("IF NOT EXISTS(SELECT 1 FROM dbo.PromotionSegmentRates WHERE SegmentCode='GOLD' AND Value=10 AND CalculationBase='OriginalAmount') OR NOT EXISTS(SELECT 1 FROM dbo.PromotionSegmentRates WHERE SegmentCode='VIP' AND Value=0 AND CalculationBase='CurrentAmount') THROW 50000,'Failed multirow update changed valid rows.',1;");
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>db.SqlAsync("UPDATE dbo.PromotionSegmentRates SET CalculationMethod=2 WHERE SegmentCode='GOLD';"));
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>db.SqlAsync("UPDATE dbo.PromotionSegmentRates SET CalculationBase=2,Value=20;"));
+        await db.SqlAsync("IF NOT EXISTS(SELECT 1 FROM dbo.PromotionSegmentRates WHERE SegmentCode='GOLD' AND Value=10 AND CalculationBase=2) OR NOT EXISTS(SELECT 1 FROM dbo.PromotionSegmentRates WHERE SegmentCode='VIP' AND Value=0 AND CalculationBase=1) THROW 50000,'Failed multirow update changed valid rows.',1;");
     }
 }

@@ -25,7 +25,7 @@ public class PricingPipelineIntegrationTests
         Assert.Equal(280.70m,result.FinalAmount);Assert.Equal(59.30m,result.TotalDiscount);Assert.Equal(3,result.Discounts.Count);
         Assert.Equal([17m,32.30m,10m],result.Discounts.Select(d=>d.DiscountAmount));
         Assert.Equal([340m,323m,290.70m],result.Discounts.Select(d=>d.PriceBefore));
-        await db.SqlAsync("UPDATE r SET CalculationBase='OriginalAmount' FROM dbo.PromotionSegmentRates r JOIN dbo.Promotions p ON p.Id=r.PromotionId WHERE p.Name='Segment Promotion' AND r.SegmentCode='GOLD';");
+        await db.SqlAsync("UPDATE r SET CalculationBase=2 FROM dbo.PromotionSegmentRates r JOIN dbo.Promotions p ON p.Id=r.PromotionId WHERE p.Name='Segment Promotion' AND r.SegmentCode='GOLD';");
         result=await Engine(db.ConnectionString).CalculateAsync(request,default);
         Assert.Equal(279m,result.FinalAmount);Assert.Equal(61m,result.TotalDiscount);Assert.Equal(340m,result.Discounts[1].CalculationBaseAmount);
         var silver=await Engine(db.ConnectionString).CalculateAsync(request with {CustomerId="customer-002"},default);

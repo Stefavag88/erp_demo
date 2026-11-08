@@ -4,12 +4,12 @@ namespace ERP.Discounts.IntegrationTests.Repositories;
 [Trait("Category","Mapping")]
 public class MappingTests
 {
-    [Theory] [InlineData("Percentage",CalculationMethod.Percentage)] [InlineData("FixedAmount",CalculationMethod.FixedAmount)]
-    public void Maps_exact_methods(string text,CalculationMethod expected)=>Assert.Equal(expected,DiscountRowMapper.Method(text));
-    [Theory] [InlineData("CurrentAmount",CalculationBase.CurrentAmount)] [InlineData("OriginalAmount",CalculationBase.OriginalAmount)]
-    public void Maps_exact_bases(string text,CalculationBase expected)=>Assert.Equal(expected,DiscountRowMapper.Base(text));
-    [Theory] [InlineData("percentage")] [InlineData("99")] [InlineData("")]
-    public void Rejects_unknown_stored_enums(string text){Assert.Throws<InvalidOperationException>(()=>DiscountRowMapper.Method(text));Assert.Throws<InvalidOperationException>(()=>DiscountRowMapper.Base(text));}
+    [Theory] [InlineData((byte)1,CalculationMethod.Percentage)] [InlineData((byte)2,CalculationMethod.FixedAmount)]
+    public void Maps_exact_methods(byte code,CalculationMethod expected)=>Assert.Equal(expected,DiscountRowMapper.Method(code));
+    [Theory] [InlineData((byte)1,CalculationBase.CurrentAmount)] [InlineData((byte)2,CalculationBase.OriginalAmount)]
+    public void Maps_exact_bases(byte code,CalculationBase expected)=>Assert.Equal(expected,DiscountRowMapper.Base(code));
+    [Theory] [InlineData((byte)0)] [InlineData((byte)3)] [InlineData((byte)255)]
+    public void Rejects_unknown_stored_enums(byte code){Assert.Throws<InvalidOperationException>(()=>DiscountRowMapper.Method(code));Assert.Throws<InvalidOperationException>(()=>DiscountRowMapper.Base(code));}
     [Fact]
     public void Assigns_UTC_to_SQL_datetime_without_local_conversion()
     {

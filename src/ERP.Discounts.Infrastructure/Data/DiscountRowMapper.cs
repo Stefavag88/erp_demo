@@ -4,19 +4,21 @@ namespace ERP.Discounts.Infrastructure.Data;
 
 internal static class DiscountRowMapper
 {
-    internal static CalculationMethod Method(string value) => value switch
+    internal static CalculationMethod Method(byte value)
     {
-        "Percentage" => CalculationMethod.Percentage,
-        "FixedAmount" => CalculationMethod.FixedAmount,
-        _ => throw new InvalidOperationException($"Unknown stored calculation method: {value}.")
-    };
+        var method = (CalculationMethod)value;
+        return Enum.IsDefined(method)
+            ? method
+            : throw new InvalidOperationException($"Unknown stored calculation method: {value}.");
+    }
 
-    internal static CalculationBase Base(string value) => value switch
+    internal static CalculationBase Base(byte value)
     {
-        "CurrentAmount" => CalculationBase.CurrentAmount,
-        "OriginalAmount" => CalculationBase.OriginalAmount,
-        _ => throw new InvalidOperationException($"Unknown stored calculation base: {value}.")
-    };
+        var calculationBase = (CalculationBase)value;
+        return Enum.IsDefined(calculationBase)
+            ? calculationBase
+            : throw new InvalidOperationException($"Unknown stored calculation base: {value}.");
+    }
 
     internal static DateTimeOffset? Utc(DateTime? value)
     {

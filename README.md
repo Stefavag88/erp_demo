@@ -39,6 +39,15 @@ sqlcmd -S '(localdb)\MSSQLLocalDB' -E -C -b -v DatabaseName=ERPDiscounts -i sql/
 
 Schema changes assume a fresh database. Provision the current schema with scripts 000–004; no upgrade or migration workflow is provided. Use a new database name when trying a changed schema, for example `./sql/Deploy.ps1 -DatabaseName ERPDiscountsDemo2`, and point the API connection string at it.
 
+Calculation enums are stored as nonnullable `TINYINT` codes in PriceListDiscounts, PromotionSegmentRates and Coupons:
+
+| Column | Code 1 | Code 2 |
+|---|---|---|
+| CalculationMethod | Percentage | FixedAmount |
+| CalculationBase | CurrentAmount | OriginalAmount |
+
+These codes match the explicit C# enum values and must not be renumbered or reused. SQL CHECK constraints allow only 1 and 2, cap percentage values at 100 and require base 1 for fixed amounts. Dapper row DTOs use byte fields; the mapper validates that each code is defined before returning domain enums. Adding a code requires updating the C# enum, SQL constraints and tests together. JSON responses continue using enum names, as in the example below; DiscountType is derived from its provider/category rather than stored in a database column. See [the storage decision](docs/decisions/2026-11-08-numeric-discount-enums.md).
+
 In SSMS enable **Query > SQLCMD Mode** and supply `:setvar DatabaseName ERPDiscounts` at the top of each execution. In command-line mode always pass `-v DatabaseName=...`; scripts intentionally do not override that value. Provisioning/test setup requires database-creation privileges. A runtime principal needs only EXECUTE on the three procedures and EXECUTE/REFERENCES on dbo.CouponCodeList, with normal same-owner procedure/table ownership chaining; it needs no DDL or table-write rights. No runtime path deploys schema.
 
 ## Pricing endpoint

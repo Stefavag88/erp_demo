@@ -57,3 +57,11 @@ The user's approved scope change replaces SQL customer-profile lookup with ICust
 - DiscountEngine.cs and the existing duplicate-provider test remain untouched. The earlier user-edit regression documented above is still outstanding; no complete passing-unit-suite claim is made for this change.
 - Dependency versions and the committed audit policy are unchanged; functional checks use the same cached/offline restore described above.
 - Build: zero warnings/errors. Unit suite: 73 passed, with the same 1 pre-existing duplicate-provider failure out of 74. The two new segment-base cases pass. Kestrel smoke: HTTP 200, finalAmount 280.70, totalDiscount 59.30 and three discounts, using a fresh trigger-free disposable SQL database. Existing user databases were not upgraded automatically.
+
+## Subsequent change: numeric calculation enums
+
+- TDD: seven numeric mapper cases initially failed against unimplemented numeric overloads; a SQL test initially rejected the six string columns. Numeric row fields and validated enum conversion now pass those tests.
+- All 51 integration tests passed without skips against fresh SQL Server databases. Coverage includes six nonnullable TINYINT columns, rejection of 0/3/255/NULL across all six columns, exact valid code mapping, existing percentage/fixed constraints and unchanged GOLD/SILVER/current/original pricing.
+- Existing HTTP tests verify named enum strings and the complete 280.70 demo response against the numeric database. No stored-procedure names, public HTTP contracts, engine/calculator logic or C# enum numeric assignments changed.
+- No migrations or triggers were introduced. Existing user databases and the earlier user-edited engine are untouched. The separately documented duplicate-provider unit-test failure and dependency-audit limitation remain outstanding.
+- Final build: zero warnings/errors. Unit run: 73 passed, with the same 1 existing duplicate-provider failure. Separate Kestrel smoke against a fresh numeric-code database returned HTTP 200, finalAmount 280.70, totalDiscount 59.30 and three discounts; temporary process/database cleanup completed.
