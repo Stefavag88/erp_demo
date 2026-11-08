@@ -14,13 +14,6 @@ BEGIN
       AND (p.EndsAtUtc IS NULL OR @AsOfUtc<p.EndsAtUtc);
 END;
 GO
-CREATE OR ALTER PROCEDURE dbo.usp_CustomerDiscountProfile_GetSegment @CustomerId nvarchar(64)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT SegmentCode FROM dbo.CustomerDiscountProfiles WHERE CustomerId=@CustomerId;
-END;
-GO
 CREATE OR ALTER PROCEDURE dbo.usp_Promotion_GetActiveDefinitions @AsOfUtc datetime2(7)
 AS
 BEGIN

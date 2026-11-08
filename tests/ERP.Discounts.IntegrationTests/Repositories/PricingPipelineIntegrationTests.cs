@@ -5,6 +5,7 @@ using ERP.Discounts.Domain;
 using ERP.Discounts.Domain.Enums;
 using ERP.Discounts.Infrastructure.Data;
 using ERP.Discounts.Infrastructure.Repositories;
+using ERP.Discounts.Infrastructure.Providers;
 using ERP.Discounts.IntegrationTests.Sql;
 namespace ERP.Discounts.IntegrationTests.Repositories;
 [Trait("Category","SqlServer")]
@@ -13,7 +14,7 @@ public class PricingPipelineIntegrationTests
     internal static DiscountEngine Engine(string connectionString)
     {
         var f=new SqlConnectionFactory(connectionString);
-        return new([new CouponDiscountProvider(new DapperCouponRepository(f)),new PromotionDiscountProvider(new DapperCustomerSegmentRepository(f),new DapperPromotionRepository(f)),new PriceListDiscountProvider(new DapperPriceListRepository(f))],new DiscountCalculator(),TimeProvider.System);
+        return new([new CouponDiscountProvider(new DapperCouponRepository(f)),new PromotionDiscountProvider(new DummyCustomerSegmentProvider(),new DapperPromotionRepository(f)),new PriceListDiscountProvider(new DapperPriceListRepository(f))],new DiscountCalculator(),TimeProvider.System);
     }
     [SqlServerFact]
     public async Task Real_database_pipeline_matches_demo_and_original_variant()
@@ -61,7 +62,7 @@ public class PricingPipelineIntegrationTests
     public async Task Repository_cancellation_and_connection_failures_propagate()
     {
         var f=new SqlConnectionFactory("Server=tcp:127.0.0.1,1;Integrated Security=true;Encrypt=false;Connect Timeout=1;ConnectRetryCount=0");
-        await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(()=>new DapperCustomerSegmentRepository(f).GetSegmentAsync("customer-001",default));
+        await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(()=>new DapperPriceListRepository(f).GetEligibleAsync("customer-001",DateTimeOffset.UtcNow,default));
         using var cts=new CancellationTokenSource();cts.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>new DapperPriceListRepository(f).GetEligibleAsync("customer-001",DateTimeOffset.UtcNow,cts.Token));
     }

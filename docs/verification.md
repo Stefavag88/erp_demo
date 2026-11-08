@@ -36,3 +36,14 @@ An independent read-only reviewer inspected commits 30282ff..4ed3496 and reprodu
 Review dispositions: dependency vulnerability status remains unverified because auditing requires unavailable network access (already disclosed); procedure-local #Candidates is accepted as intermediate query storage inside a stored procedure, not application schema provisioning. The cost of the latter interpretation is a different implementation if a stricter assessment disallows temporary tables; no application C# issues DDL.
 
 There is no base branch or configured Git remote in this newly initialized repository. The completed work stays on feat/discount-subsystem; nothing is merged or pushed.
+
+## Subsequent change: external customer segments
+
+The user's approved scope change replaces SQL customer-profile lookup with ICustomerSegmentProvider and an Infrastructure dummy adapter. The original specification is preserved; the current decision is documented in docs/decisions/2026-11-08-external-customer-segments.md.
+
+- TDD: six dummy-provider cases failed against the unimplemented adapter, then passed. A real-SQL test first failed because CustomerDiscountProfiles existed, then passed after removing profile provisioning, its seed and lookup procedure.
+- Full current suite: 49/49 integration tests passed with no skips, including the new seven-table/no-segment-procedure boundary, real SQL-backed GOLD/SILVER pricing, and seeded HTTP demo. Unit tests: 71 passed, 1 failed.
+- Existing failure: DiscountEngineTests.Rejects_duplicate_and_unknown_categories fails on its duplicate-provider assertion. The engine in the user's preceding commit f5933e8 no longer validates duplicate provider registrations. Neither DiscountEngine.cs nor that test was modified by the segment refactor; the user's engine edits are preserved. This is an outstanding engine regression, not a passing full-suite result.
+- Functional verification restored pinned dependencies from the local cache with NuGetAudit=false. The previously observed NU1902/NU1903 warnings for System.Security.Cryptography.Pkcs 9.0.18 are not resolved; no dependency versions or committed audit policy were changed.
+- Fresh SQL provisioning now creates seven tables and three read procedures. Existing database/profile data was not deleted; legacy objects are unused by the application.
+- The refactor builds with zero compiler warnings/errors after the offline restore. A separate Kestrel smoke against a freshly provisioned disposable database returned HTTP 200, finalAmount 280.70, totalDiscount 59.30 and three discounts; its process and test database were cleaned up.

@@ -8,6 +8,7 @@ using ERP.Discounts.Application.Repositories;
 using ERP.Discounts.Domain;
 using ERP.Discounts.Infrastructure.Data;
 using ERP.Discounts.Infrastructure.Repositories;
+using ERP.Discounts.Infrastructure.Providers;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,11 +32,11 @@ builder.Services.AddSingleton(new SqlConnectionFactory(connectionString));
 
 //repositories
 builder.Services.AddScoped<IPriceListRepository, DapperPriceListRepository>();
-builder.Services.AddScoped<ICustomerSegmentRepository, DapperCustomerSegmentRepository>();
 builder.Services.AddScoped<IPromotionRepository, DapperPromotionRepository>();
 builder.Services.AddScoped<ICouponRepository, DapperCouponRepository>();
 
 //providers
+builder.Services.AddSingleton<ICustomerSegmentProvider, DummyCustomerSegmentProvider>();
 builder.Services.AddScoped<IDiscountProvider, PriceListDiscountProvider>();
 builder.Services.AddScoped<IDiscountProvider, PromotionDiscountProvider>();
 builder.Services.AddScoped<IDiscountProvider, CouponDiscountProvider>();

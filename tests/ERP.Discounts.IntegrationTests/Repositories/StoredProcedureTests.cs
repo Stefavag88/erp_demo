@@ -13,8 +13,6 @@ public class StoredProcedureTests
         var factory=new SqlConnectionFactory(db.ConnectionString);var now=DateTimeOffset.UnixEpoch;
         var lists=await new DapperPriceListRepository(factory).GetEligibleAsync("customer-001",now,default);
         Assert.Equal(5m,Assert.Single(lists).Value);
-        Assert.Equal("GOLD",await new DapperCustomerSegmentRepository(factory).GetSegmentAsync("customer-001",default));
-        Assert.Null(await new DapperCustomerSegmentRepository(factory).GetSegmentAsync("unknown",default));
         var promotions=await new DapperPromotionRepository(factory).GetActiveDefinitionsAsync(now,default);
         var primary=Assert.Single(promotions,p=>p.Name=="Segment Promotion");
         Assert.Equal(200m,primary.MinimumCurrentAmount);Assert.Null(primary.StartsAtUtc);

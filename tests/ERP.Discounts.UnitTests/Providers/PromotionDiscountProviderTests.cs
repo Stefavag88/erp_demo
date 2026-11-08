@@ -6,7 +6,7 @@ using ERP.Discounts.UnitTests.Engine;
 namespace ERP.Discounts.UnitTests.Providers;
 public class PromotionDiscountProviderTests
 {
-    internal sealed class Segments(string? segment="GOLD", bool fail=false) : ICustomerSegmentRepository
+    internal sealed class Segments(string? segment="GOLD", bool fail=false) : ICustomerSegmentProvider
     { public Task<string?> GetSegmentAsync(string customerId,CancellationToken cancellationToken) {Assert.Equal("customer-001",customerId);if(fail)throw new IOException();return Task.FromResult(segment);} }
     internal sealed class Promotions(params PromotionDefinition[] rows) : IPromotionRepository
     { public Task<IReadOnlyList<PromotionDefinition>> GetActiveDefinitionsAsync(DateTimeOffset asOfUtc,CancellationToken cancellationToken){Assert.Equal(DateTimeOffset.UnixEpoch,asOfUtc);return Task.FromResult<IReadOnlyList<PromotionDefinition>>(rows);} }

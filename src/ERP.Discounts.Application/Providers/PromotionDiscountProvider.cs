@@ -5,7 +5,7 @@ using ERP.Discounts.Domain.Models;
 
 namespace ERP.Discounts.Application.Providers;
 
-public sealed class PromotionDiscountProvider(ICustomerSegmentRepository segments, IPromotionRepository promotions) : IDiscountProvider
+public sealed class PromotionDiscountProvider(ICustomerSegmentProvider segments, IPromotionRepository promotions) : IDiscountProvider
 {
     public DiscountType Type => DiscountType.Promotion;
 

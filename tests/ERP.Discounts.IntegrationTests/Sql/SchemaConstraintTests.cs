@@ -3,6 +3,14 @@ namespace ERP.Discounts.IntegrationTests.Sql;
 public class SchemaConstraintTests
 {
     [SqlServerFact]
+    public async Task Database_does_not_own_customer_segmentation()
+    {
+        await using var db = await SqlServerFixture.CreateAsync();
+
+        await db.SqlAsync("IF OBJECT_ID(N'dbo.CustomerDiscountProfiles',N'U') IS NOT NULL THROW 50000,'Customer profiles must be external.',1; IF OBJECT_ID(N'dbo.usp_CustomerDiscountProfile_GetSegment',N'P') IS NOT NULL THROW 50000,'Segment lookup must not use a stored procedure.',1; IF (SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped=0)<>7 THROW 50000,'Expected seven discount-domain tables.',1;");
+    }
+
+    [SqlServerFact]
     public async Task Rejects_invalid_definitions_and_cross_table_fixed_bases()
     {
         await using var db=await SqlServerFixture.CreateAsync(1);

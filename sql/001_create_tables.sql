@@ -29,10 +29,6 @@ CREATE TABLE dbo.PriceListDiscounts (
     CONSTRAINT CK_PriceListDiscounts_Value CHECK(Value >= 0 AND (CalculationMethod <> 'Percentage' OR Value <= 100)),
     CONSTRAINT CK_PriceListDiscounts_Fixed CHECK(CalculationMethod <> 'FixedAmount' OR CalculationBase = 'CurrentAmount')
 );
-CREATE TABLE dbo.CustomerDiscountProfiles (
-    CustomerId nvarchar(64) NOT NULL CONSTRAINT PK_CustomerDiscountProfiles PRIMARY KEY,
-    SegmentCode nvarchar(32) COLLATE Latin1_General_100_BIN2 NOT NULL
-);
 CREATE TABLE dbo.Promotions (
     Id uniqueidentifier NOT NULL CONSTRAINT PK_Promotions PRIMARY KEY,
     Name nvarchar(200) NOT NULL,

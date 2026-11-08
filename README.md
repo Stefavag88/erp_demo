@@ -23,9 +23,9 @@ TrustServerCertificate and the script's sqlcmd -C flag are local-demo convenienc
 Database objects come exclusively from these SQL scripts, in order:
 
 1. 000_create_database.sql — guarded database creation.
-2. 001_create_tables.sql — eight domain tables, constraints and promotion invariant triggers.
+2. 001_create_tables.sql — seven domain tables, constraints and promotion invariant triggers.
 3. 002_create_indexes_and_types.sql — lookup indexes, normalized coupon uniqueness and CouponCodeList TVP.
-4. 003_create_stored_procedures.sql — four CREATE OR ALTER read procedures.
+4. 003_create_stored_procedures.sql — three CREATE OR ALTER read procedures.
 5. 004_seed_demo_data.sql — transactional, repeatable stable-key upserts.
 
 Deploy.ps1 defaults to database ERPDiscounts and Windows integrated authentication. For another SQL Server use `-Server 'server\instance'` and optionally `-DatabaseName ERPDiscountsDemo`. Schema scripts 001–002 are one-time provisioning; rerun 003 to update procedures and use `.\sql\Deploy.ps1 -SeedOnly` to restore demo values. Reseeding updates known demo keys; it does not delete unrelated data. It deliberately resets demo definitions to their documented values.
@@ -37,7 +37,7 @@ sqlcmd -S '(localdb)\MSSQLLocalDB' -E -C -b -v DatabaseName=ERPDiscounts -i sql/
 # Repeat this command for 001, 002, 003 and 004 in order.
 ```
 
-In SSMS enable **Query > SQLCMD Mode** and supply `:setvar DatabaseName ERPDiscounts` at the top of each execution. In command-line mode always pass `-v DatabaseName=...`; scripts intentionally do not override that value. Provisioning/test setup requires database-creation privileges. A runtime principal needs only EXECUTE on the four procedures and EXECUTE/REFERENCES on dbo.CouponCodeList, with normal same-owner procedure/table ownership chaining; it needs no DDL or table-write rights. No runtime path deploys schema.
+In SSMS enable **Query > SQLCMD Mode** and supply `:setvar DatabaseName ERPDiscounts` at the top of each execution. In command-line mode always pass `-v DatabaseName=...`; scripts intentionally do not override that value. Provisioning/test setup requires database-creation privileges. A runtime principal needs only EXECUTE on the three procedures and EXECUTE/REFERENCES on dbo.CouponCodeList, with normal same-owner procedure/table ownership chaining; it needs no DDL or table-write rights. No runtime path deploys schema.
 
 ## Pricing endpoint
 
@@ -111,7 +111,7 @@ Unit tests have no SQL/infrastructure reference. Mapping and fake-backed API tes
 
 ```powershell
 dotnet test tests/ERP.Discounts.UnitTests
-dotnet test tests/ERP.Discounts.IntegrationTests --filter 'Category=Mapping|Category=Api&Category!=SqlServer'
+dotnet test tests/ERP.Discounts.IntegrationTests --filter 'Category!=SqlServer'
 ```
 
 Run all SQL Server tests (including seeded HTTP) explicitly:
@@ -126,20 +126,24 @@ Remove-Item Env:ERP_DISCOUNTS_TEST_CONNECTION
 
 Without this variable, SQL tests visibly skip. With it, connection/setup errors fail tests. The fixture provisions only generated ERPDiscounts_Test_<guid> databases and cleans up only its exact generated database after validating its name. It never drops the database named in your connection string. sqlcmd must support your authentication choice; the fixture supports integrated authentication or SQL user/password and passes SQL passwords via SQLCMDPASSWORD rather than command-line arguments. Tests can run against any compatible dedicated SQL Server; they are not replaced with SQLite.
 
-SQL tests exercise constraints/triggers, TVP/allow-lists, repeatable seed, all four real repositories, nullable/enum/time mapping, exact validity boundaries, GOLD/SILVER and multiple eligibility, connection failures and the complete API/engine pipeline. The SQL fixture runs provisioning/assertion SQL through sqlcmd; every application runtime database operation remains a stored-procedure Dapper command.
+SQL tests exercise constraints/triggers, TVP/allow-lists, repeatable seed, all three real repositories, nullable/enum/time mapping, exact validity boundaries, GOLD/SILVER and multiple eligibility, connection failures and the complete API/engine pipeline. They also verify that the database has no customer-profile table or segment-lookup procedure. The SQL fixture runs provisioning/assertion SQL through sqlcmd; every application runtime database operation remains a stored-procedure Dapper command.
 
 ## Design and trade-offs
 
 - Domain contains immutable records and the pure calculator. Application contains request validation, engine, providers and typed repository interfaces. Infrastructure owns Dapper row DTOs/mappings and SQL connections. API owns DI, HTTP binding and error responses. Dependencies point inward.
 - Providers run once in central priority order (100 PriceList, 200 Promotion, 300 Coupon), independent of DI/enum order. Same-category discounts sort by priority then ordinal ID; GUID IDs use lowercase D format. Each provider sees the remaining amount/history at category entry. Eligibility is not re-evaluated between discounts within a category; all eligible discounts stack.
 - One injected TimeProvider sample supplies every temporal query and C# promotion validity check. Stored windows are nullable, UTC and half-open. Explicit DateTime2 parameters preserve boundary instants; DATETIME2 columns store milliseconds. A common time does not provide a transactional database snapshot across provider reads, so concurrent administrative edits may affect different categories differently.
-- Promotion resolution combines local customer segment and active definitions/rates in C#. The same promotion resolves GOLD=10% and SILVER=5%; minimum 200 uses the stage-entry remaining amount. The repository uses two result sets selected coherently in the procedure. Stored procedures do not calculate prices or order the cross-category pipeline.
+- Promotion resolution combines the segment supplied by ICustomerSegmentProvider with active definitions/rates from the discount database. The same promotion resolves GOLD=10% and SILVER=5%; minimum 200 uses the stage-entry remaining amount. The repository uses two result sets selected coherently in the procedure. Stored procedures do not calculate prices or order the cross-category pipeline.
 - The calculator uses decimal, rounds each requested deduction to cents AwayFromZero and caps it at the remaining amount. A percentage can use original or current amount independently of execution order. Original 100, fixed 80, then 50% of original deducts only 20 and ends at zero. Fixed discounts report CurrentAmount with null calculationBaseAmount. Zero deductions remain in the breakdown.
 - Nonblank opaque IDs are preserved, limited to 64 characters. Original money must be nonnegative, numerically two-decimal EUR and fit DECIMAL(19,2), max 99999999999999999.99. The API validates the exact JSON numeric token before decimal conversion to prevent silent input rounding; equivalent trailing zeros and exponent notation remain accepted. Coupon codes trim, uppercase invariantly, deduplicate ordinally and allow 1–64 ASCII letters/digits/underscores/hyphens starting with a letter/digit. Null lists/elements fail; empty lists work. Request/history/result collections are defensive snapshots.
 - Unknown/duplicate provider categories and malformed resolved discounts fail clearly. Missing categories are allowed by the reusable engine; the API registers all three. Duplicate discount IDs within a category fail; identities across different categories are independent. No per-request state is stored on the engine.
 - There is no central Discounts table. Fixed-promotion invariants span the parent calculation base and child rate method, so two narrow, set-based triggers enforce both mutation directions. SQL check constraints enforce the remaining enum/value/window rules.
 
-Local customer profiles/assignments are demo discount-domain facts, with no external Customers FK. OrderId is correlation only. This assignment has no result persistence, coupon reservation/redemption, line allocations, tax/shipping, auth, external calls, bus, cache or background workers. Production requirements would need a separate design rather than infrastructure added speculatively here.
+Customer segmentation is external information behind Application's ICustomerSegmentProvider. The API registers an Infrastructure DummyCustomerSegmentProvider: customer-001 maps to GOLD, customer-002 to SILVER, customer-multi to BRONZE, and other IDs return no segment. These fixed demo assignments are isolated in that adapter; the application contains no customer classification logic and performs no segment database lookup. PromotionSegmentRates remains in SQL because promotion rates are discount rules. Replacing the dummy with another source requires implementing the same interface and changing DI registration; no external client is implemented here.
+
+Local price-list assignments remain discount-domain facts with no external Customers FK. OrderId is correlation only. This assignment has no result persistence, coupon reservation/redemption, line allocations, tax/shipping, auth, external calls, bus, cache or background workers. Production requirements would need a separate design rather than infrastructure added speculatively here.
+
+This segment-provider boundary supersedes the original specification's local CustomerDiscountProfiles design by explicit user agreement; see [the scope decision](docs/decisions/2026-11-08-external-customer-segments.md). Updated provisioning scripts create no profile table or segment procedure and seed no profile assignments. Existing databases can still be used: legacy profile objects are unused and are not automatically dropped, preserving any existing data.
 
 Future discussion: a new category adds a provider/repository/tables and a priority-policy entry; external sources can sit behind a provider dependency. Per-line allocation, exclusive stacking, per-discount eligibility, multiple currencies, customer synchronization, result storage or message processing require explicit contract/policy redesign as described in the specification.
 
@@ -147,4 +151,4 @@ Future discussion: a new category adds a provider/repository/tables and a priori
 
 The approved plan is [docs/superpowers/plans/2026-11-08-erp-discounts.md](docs/superpowers/plans/2026-11-08-erp-discounts.md); the supplied specification is preserved beside it under docs/superpowers/specs. Commits follow domain/calculator/engine, providers, Dapper, SQL, integration tests and API, with tests included in each increment.
 
-Verification on 2026-11-08 used .NET SDK 10.0.403 and SQL Server 2019 LocalDB. The core suite passed 72 tests; the integration project passed 42 mapping/API/SQL tests, including the real SQL-backed HTTP demo and 13 exact numeric-token regressions from final review. SQL Server tests were executed, not skipped. Build/test and executable HTTP smoke evidence is recorded in docs/verification.md. In this restricted environment NuGet was unreachable, so restore used the installed package cache; normal setup uses dotnet restore. Single-node builds with compiler sharing disabled were used for sandbox compatibility. Security-audit network checks were unavailable during that offline restore.
+The initial implementation was verified on 2026-11-08 using .NET SDK 10.0.403 and SQL Server 2019 LocalDB: 72 unit and 42 integration tests passed. Subsequent user edits and the segment-provider refactor have a separate verification entry in [docs/verification.md](docs/verification.md), including the existing engine-test failure. SQL Server tests and the executable HTTP smoke were run against real LocalDB. Local functional checks use a cached restore with auditing disabled because dependency audit warnings currently block normal builds; no dependency version or project audit policy has been changed.

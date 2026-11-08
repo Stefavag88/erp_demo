@@ -28,15 +28,6 @@ USING (VALUES
 ) AS source(CustomerId,PriceListId)
 ON target.CustomerId=source.CustomerId AND target.PriceListId=source.PriceListId
 WHEN NOT MATCHED THEN INSERT(CustomerId,PriceListId) VALUES(source.CustomerId,source.PriceListId);
-MERGE dbo.CustomerDiscountProfiles WITH (HOLDLOCK) AS target
-USING (VALUES
-    (N'customer-001',N'GOLD'),
-    (N'customer-002',N'SILVER'),
-    (N'customer-multi',N'BRONZE')
-) AS source(CustomerId,SegmentCode)
-ON target.CustomerId=source.CustomerId
-WHEN MATCHED THEN UPDATE SET SegmentCode=source.SegmentCode
-WHEN NOT MATCHED THEN INSERT(CustomerId,SegmentCode) VALUES(source.CustomerId,source.SegmentCode);
 MERGE dbo.Promotions WITH (HOLDLOCK) AS target
 USING (VALUES
     (N'00000021-0000-0000-0000-000000000001',N'Segment Promotion',N'CurrentAmount',200,0,1,NULL,NULL),

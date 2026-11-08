@@ -1,3 +1,4 @@
+using ERP.Discounts.Application.Contracts;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -21,13 +22,13 @@ public class PricingEndpointTests
             builder.UseEnvironment("Production").UseSetting("ConnectionStrings:Discounts",realConnection ?? "Server=unused;Integrated Security=true");
             if(realConnection is null) builder.ConfigureServices(services=>
             {
-                services.RemoveAll<IPriceListRepository>();services.RemoveAll<ICustomerSegmentRepository>();services.RemoveAll<IPromotionRepository>();services.RemoveAll<ICouponRepository>();
+                services.RemoveAll<IPriceListRepository>();services.RemoveAll<ICustomerSegmentProvider>();services.RemoveAll<IPromotionRepository>();services.RemoveAll<ICouponRepository>();
                 var repositories=new DemoRepositories(fail);
-                services.AddSingleton<IPriceListRepository>(repositories);services.AddSingleton<ICustomerSegmentRepository>(repositories);services.AddSingleton<IPromotionRepository>(repositories);services.AddSingleton<ICouponRepository>(repositories);
+                services.AddSingleton<IPriceListRepository>(repositories);services.AddSingleton<ICustomerSegmentProvider>(repositories);services.AddSingleton<IPromotionRepository>(repositories);services.AddSingleton<ICouponRepository>(repositories);
             });
         }
     }
-    private sealed class DemoRepositories(bool fail) : IPriceListRepository,ICustomerSegmentRepository,IPromotionRepository,ICouponRepository
+    private sealed class DemoRepositories(bool fail) : IPriceListRepository,ICustomerSegmentProvider,IPromotionRepository,ICouponRepository
     {
         public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(string customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
         {
