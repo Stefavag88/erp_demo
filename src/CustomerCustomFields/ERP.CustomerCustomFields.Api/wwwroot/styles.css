@@ -1,1 +1,92 @@
-:root{font-family:system-ui,sans-serif;color:#182735;background:#f3f6f8}body{margin:0}main{max-width:900px;margin:2rem auto;padding:0 1rem}header p{color:#4e6478}section{background:white;border:1px solid #d4dfe5;border-radius:10px;padding:1.4rem;margin:1rem 0}label{display:block;margin:.7rem 0}input,select,textarea,button{font:inherit;padding:.55rem;border:1px solid #9aafbd;border-radius:5px}input,textarea{max-width:95%}label input,label textarea{display:block;width:28rem}button{cursor:pointer;background:#e8f0f5;margin:.3rem}select[multiple]{display:block;min-width:250px;min-height:7rem}.field{padding:1rem 0;border-bottom:1px solid #d4dfe5}.field:last-child{border:0}#status{white-space:pre-wrap;min-height:1.5rem}table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{padding:.6rem;border-bottom:1px solid #d4dfe5;text-align:left;overflow-wrap:anywhere}small{display:block;color:#4e6478}
+:root {
+    font-family: system-ui,sans-serif;
+    color: #182735;
+    background: #f3f6f8;
+}
+
+body {
+    margin: 0;
+}
+
+main {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+header p {
+    color: #4e6478;
+}
+
+section {
+    background: white;
+    border: 1px solid #d4dfe5;
+    border-radius: 10px;
+    padding: 1.4rem;
+    margin: 1rem 0;
+}
+
+label {
+    display: block;
+    margin: .7rem 0;
+}
+
+input,select,textarea,button {
+    font: inherit;
+    padding: .55rem;
+    border: 1px solid #9aafbd;
+    border-radius: 5px;
+}
+
+input,textarea {
+    max-width: 95%;
+}
+
+label input,label textarea {
+    display: block;
+    width: 28rem;
+}
+
+button {
+    cursor: pointer;
+    background: #e8f0f5;
+    margin: .3rem;
+}
+
+select[multiple] {
+    display: block;
+    min-width: 250px;
+    min-height: 7rem;
+}
+
+.field {
+    padding: 1rem 0;
+    border-bottom: 1px solid #d4dfe5;
+}
+
+.field:last-child {
+    border: 0;
+}
+
+#status {
+    white-space: pre-wrap;
+    min-height: 1.5rem;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: .9rem;
+}
+
+td,th {
+    padding: .6rem;
+    border-bottom: 1px solid #d4dfe5;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+small {
+    display: block;
+    color: #4e6478;
+}

@@ -1,17 +1,116 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Customer custom fields</title><link rel="stylesheet" href="/styles.css"></head>
-<body><main>
-<header><p>ERP assignment · Part two</p><h1>Customer custom fields</h1><p>Definitions are global. Values and their history belong to each customer.</p><p>Local demo: run in Development to use the seeded demo actor.</p></header>
-<p id="status" role="status" aria-live="polite"></p>
-<section><h2>Customer profile</h2><label for="customer">Customer</label><select id="customer"></select><button id="refresh" type="button">Refresh profile</button><div id="profile"></div></section>
-<section><h2>Create a global field</h2><form id="create-field">
-<label>Stable key <input name="fieldKey" required maxlength="100" placeholder="external_reference"></label>
-<label>Label <input name="label" required maxlength="200" placeholder="External reference"></label>
-<label>Control <select name="fieldType"><option value="TEXT">Text</option><option value="MULTI_SELECT">Multi-select</option></select></label>
-<label>Initial options, one label per line <textarea name="options" rows="3" placeholder="VIP&#10;Retail&#10;Wholesale"></textarea></label><button>Create field for all customers</button>
-</form></section>
-<section><h2>New customer</h2><form id="create-customer"><label>Name <input name="name" required maxlength="200"></label><button>Create customer</button></form></section>
-<section><h2>Inactive fields</h2><p>Reactivate definitions here. Existing values and history are retained.</p><div id="inactive"></div></section>
-<section><h2>Change history</h2><p id="history-title">Choose History beside a field.</p><div id="history"></div></section>
-</main><script src="/app.js" defer></script></body></html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>
+            Customer custom fields
+        </title>
+        <link rel="stylesheet" href="/styles.css">
+    </head>
+    <body>
+        <main>
+            <header>
+                <p>
+                    ERP assignment Â· Part two
+                </p>
+                <h1>
+                    Customer custom fields
+                </h1>
+                <p>
+                    Definitions are global. Values and their history belong to each customer.
+                </p>
+                <p>
+                    Local demo: run in Development to use the seeded demo actor.
+                </p>
+            </header>
+            <p id="status" role="status" aria-live="polite">
+            </p>
+            <section>
+                <h2>
+                    Customer profile
+                </h2>
+                <label for="customer">
+                    Customer
+                </label>
+                <select id="customer">
+                </select>
+                <button id="refresh" type="button">
+                    Refresh profile
+                </button>
+                <div id="profile">
+                </div>
+            </section>
+            <section>
+                <h2>
+                    Create a global field
+                </h2>
+                <form id="create-field">
+                    <label>
+                        Stable key
+                        <input name="fieldKey" required maxlength="100" placeholder="external_reference">
+                    </label>
+                    <label>
+                        Label
+                        <input name="label" required maxlength="200" placeholder="External reference">
+                    </label>
+                    <label>
+                        Control
+                        <select name="fieldType">
+                            <option value="TEXT">
+                                Text
+                            </option>
+                            <option value="MULTI_SELECT">
+                                Multi-select
+                            </option>
+                        </select>
+                    </label>
+                    <label>
+                        Initial options, one label per line
+                        <textarea name="options" rows="3" placeholder="VIP&#10;Retail&#10;Wholesale">
+                        </textarea>
+                    </label>
+                    <button>
+                        Create field for all customers
+                    </button>
+                </form>
+            </section>
+            <section>
+                <h2>
+                    New customer
+                </h2>
+                <form id="create-customer">
+                    <label>
+                        Name
+                        <input name="name" required maxlength="200">
+                    </label>
+                    <button>
+                        Create customer
+                    </button>
+                </form>
+            </section>
+            <section>
+                <h2>
+                    Inactive fields
+                </h2>
+                <p>
+                    Reactivate definitions here. Existing values and history are retained.
+                </p>
+                <div id="inactive">
+                </div>
+            </section>
+            <section>
+                <h2>
+                    Change history
+                </h2>
+                <p id="history-title">
+                    Choose History beside a field.
+                </p>
+                <div id="history">
+                </div>
+            </section>
+        </main>
+        <script src="/app.js" defer>
+        </script>
+    </body>
+</html>
