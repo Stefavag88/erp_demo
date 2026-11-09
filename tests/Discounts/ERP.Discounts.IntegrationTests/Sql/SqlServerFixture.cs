@@ -26,7 +26,7 @@ public sealed class SqlServerFixture : IAsyncDisposable
     public async Task ApplyAsync(int number)
     {
         var root=new DirectoryInfo(AppContext.BaseDirectory);
-        while(root is not null && !File.Exists(Path.Combine(root.FullName,"ERP.Discounts.sln"))) root=root.Parent;
+        while(root is not null && !File.Exists(Path.Combine(root.FullName,"ERP.sln"))) root=root.Parent;
         if(root is null) throw new InvalidOperationException("Repository root not found.");
         var file=Directory.GetFiles(Path.Combine(root.FullName,"sql","discounts"),$"{number:D3}_*.sql").Single();
         await RunAsync(["-d","master","-v","DatabaseName="+DatabaseName,"-i",file]);

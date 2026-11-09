@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Data.SqlClient;
+
 namespace ERP.CustomerCustomFields.IntegrationTests.Sql;
 
 // Provisioning and fixture DDL are test-only. Runtime repositories never execute SQL text.
@@ -7,60 +8,135 @@ public sealed class SqlServerFixture : IAsyncDisposable
 {
     public static void RequireVersion(int major)
     {
-        if (major != 16) throw new InvalidOperationException("SQL Server 2022 (16.x) is required.");
+        if (major != 16)
+            throw new InvalidOperationException("SQL Server 2022 (16.x) is required.");
     }
+
     private readonly SqlConnectionStringBuilder settings;
     public string DatabaseName { get; } = "ERPCustomerCustomFields_Test_" + Guid.NewGuid().ToString("N");
-    public string ConnectionString { get { var copy=new SqlConnectionStringBuilder(settings.ConnectionString){InitialCatalog=DatabaseName}; return copy.ConnectionString; } }
-    private SqlServerFixture(string connectionString) => settings=new(connectionString);
+
+    public string ConnectionString
+    {
+        get
+        {
+            var copy = new SqlConnectionStringBuilder(settings.ConnectionString)
+            {
+                InitialCatalog = DatabaseName
+            };
+            return copy.ConnectionString;
+        }
+    }
+
+    private SqlServerFixture(string connectionString) => settings = new(connectionString);
+
     public static async Task<SqlServerFixture> CreateAsync(int through = 1)
     {
-        var fixture=new SqlServerFixture(Environment.GetEnvironmentVariable("ERP_CUSTOM_FIELDS_TEST_CONNECTION") ?? throw new InvalidOperationException("SQL tests require opt-in connection."));
-        try {
-            var version = await fixture.RunAsync(["-d","master","-Q","SET NOCOUNT ON; SELECT CONVERT(int,SERVERPROPERTY('ProductMajorVersion'));"]);
+        var fixture = new SqlServerFixture(Environment.GetEnvironmentVariable("ERP_CUSTOM_FIELDS_TEST_CONNECTION") ?? throw new InvalidOperationException("SQL tests require opt-in connection."));
+        try
+        {
+            var version = await fixture.RunAsync(["-d", "master", "-Q", "SET NOCOUNT ON; SELECT CONVERT(int,SERVERPROPERTY('ProductMajorVersion'));"]);
             RequireVersion(int.Parse(version.Trim(), System.Globalization.CultureInfo.InvariantCulture));
-            for(var i=0;i<=through;i++) await fixture.ApplyAsync(i); return fixture;
+            for (var i = 0; i <= through; i++)
+                await fixture.ApplyAsync(i);
+            return fixture;
         }
-        catch { await fixture.DisposeAsync(); throw; }
+        catch
+        {
+            await fixture.DisposeAsync();
+            throw;
+        }
     }
+
     public async Task ApplyAsync(int number)
     {
-        var root=new DirectoryInfo(AppContext.BaseDirectory);
-        while(root is not null && !File.Exists(Path.Combine(root.FullName,"ERP.Discounts.sln"))) root=root.Parent;
-        if(root is null) throw new InvalidOperationException("Repository root not found.");
-        var file=Directory.GetFiles(Path.Combine(root.FullName,"sql","customer-custom-fields"),$"{number:D3}_*.sql").Single();
-        await RunAsync(["-d","master","-v","DatabaseName="+DatabaseName,"-i",file]);
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "ERP.sln")))
+            root = root.Parent;
+        if (root is null)
+            throw new InvalidOperationException("Repository root not found.");
+        var file = Directory.GetFiles(Path.Combine(root.FullName, "sql", "customer-custom-fields"), $"{number:D3}_*.sql").Single();
+        await RunAsync(["-d", "master", "-v", "DatabaseName=" + DatabaseName, "-i", file]);
     }
+
     public async Task<string> SqlAsync(string query)
     {
         try
         {
             await using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync();
-            using var command = new SqlCommand(query, connection) { CommandTimeout = 45 };
+            using var command = new SqlCommand(query, connection)
+            {
+                CommandTimeout = 45
+            };
             await command.ExecuteNonQueryAsync();
             return "";
         }
-        catch (SqlException ex) { throw new InvalidOperationException(ex.Message, ex); }
+        catch (SqlException ex)
+        {
+            throw new InvalidOperationException(ex.Message, ex);
+        }
     }
+
     private async Task<string> RunAsync(string[] arguments)
     {
-        var start=new ProcessStartInfo("sqlcmd"){RedirectStandardOutput=true,RedirectStandardError=true,UseShellExecute=false,CreateNoWindow=true};
-        foreach(var arg in new[]{"-S",settings.DataSource,"-b","-C","-l","5","-h","-1","-W"}) start.ArgumentList.Add(arg);
-        if(settings.IntegratedSecurity) start.ArgumentList.Add("-E");
-        else {start.ArgumentList.Add("-U");start.ArgumentList.Add(settings.UserID);start.Environment["SQLCMDPASSWORD"]=settings.Password;}
-        foreach(var arg in arguments) start.ArgumentList.Add(arg);
-        using var process=Process.Start(start) ?? throw new InvalidOperationException("Could not start sqlcmd.");
-        var output=process.StandardOutput.ReadToEndAsync();var errors=process.StandardError.ReadToEndAsync();
-        using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(45));
-        try {await process.WaitForExitAsync(timeout.Token);}catch {process.Kill(entireProcessTree:true);throw;}
-        var result=await output;var error=await errors;
-        if(process.ExitCode!=0)throw new InvalidOperationException($"sqlcmd exited {process.ExitCode}: {result} {error}");
+        var start = new ProcessStartInfo("sqlcmd")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        foreach (var arg in new[]
+        {
+            "-S",
+            settings.DataSource,
+            "-b",
+            "-C",
+            "-l",
+            "5",
+            "-h",
+            "-1",
+            "-W"
+        }
+
+        )
+            start.ArgumentList.Add(arg);
+        if (settings.IntegratedSecurity)
+            start.ArgumentList.Add("-E");
+        else
+        {
+            start.ArgumentList.Add("-U");
+            start.ArgumentList.Add(settings.UserID);
+            start.Environment["SQLCMDPASSWORD"] = settings.Password;
+        }
+
+        foreach (var arg in arguments)
+            start.ArgumentList.Add(arg);
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start sqlcmd.");
+        var output = process.StandardOutput.ReadToEndAsync();
+        var errors = process.StandardError.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch
+        {
+            process.Kill(entireProcessTree: true);
+            throw;
+        }
+
+        var result = await output;
+        var error = await errors;
+        if (process.ExitCode != 0)
+            throw new InvalidOperationException($"sqlcmd exited {process.ExitCode}: {result} {error}");
         return result;
     }
+
     public async ValueTask DisposeAsync()
     {
-        if(!System.Text.RegularExpressions.Regex.IsMatch(DatabaseName,@"\AERPCustomerCustomFields_Test_[0-9a-f]{32}\z"))throw new InvalidOperationException("Unsafe test database cleanup target.");
-        await RunAsync(["-d","master","-Q",$"IF DB_ID(N'{DatabaseName}') IS NOT NULL BEGIN ALTER DATABASE [{DatabaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{DatabaseName}]; END"]);
+        if (!System.Text.RegularExpressions.Regex.IsMatch(DatabaseName, @"\AERPCustomerCustomFields_Test_[0-9a-f]{32}\z"))
+            throw new InvalidOperationException("Unsafe test database cleanup target.");
+        await RunAsync(["-d", "master", "-Q", $"IF DB_ID(N'{DatabaseName}') IS NOT NULL BEGIN ALTER DATABASE [{DatabaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{DatabaseName}]; END"]);
     }
 }
