@@ -5,7 +5,7 @@ This solution contains two independent modules with separate Domain, Application
 - **Discounts:** ordered pricing calculation, Dapper reads, promotion cache and bounded read retries.
 - **Customer custom fields:** global text/multi-select definitions, customer-specific values, optimistic concurrency, temporal change history and a functional demo page.
 
-Both target SQL Server 2022 (16.x), compatibility160, using separate databases. Customer IDs are regular C# `Guid.NewGuid()` values, SQL `uniqueidentifier` and JSON strings. No external ID generator is used. Persisted enums are numeric. The custom-field demonstration is independent of discount eligibility.
+Both target SQL Server 2022 (16.x), compatibility 160, using separate databases. Customer IDs are regular C# `Guid.NewGuid()` values, SQL `uniqueidentifier` and JSON strings. No external ID generator is used. Persisted enums are numeric. The custom-field demonstration is independent of discount eligibility.
 
 Start with [SUBMISSION.md](SUBMISSION.md) for combined setup, [the custom-fields guide](docs/customer-custom-fields/README.md) for the second API and [its ER diagram](docs/customer-custom-fields/design.md). Discount-specific behavior and details follow below.
 
@@ -22,8 +22,8 @@ Prerequisites: .NET 10 SDK, SQL Server (SQL Server 2022 / 16.x), and sqlcmd on P
 From this directory in PowerShell:
 
 ```powershell
-dotnet restore ERP.Discounts.sln
-dotnet build ERP.Discounts.sln
+dotnet restore ERP.sln
+dotnet build ERP.sln
 # For SQL Server 2022, if needed:
 docker compose up -d sqlserver
 .\sql\discounts\Deploy.ps1
@@ -145,7 +145,7 @@ Run all SQL Server tests (including seeded HTTP) explicitly:
 $env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=127.0.0.1,1433;Integrated Security=true;TrustServerCertificate=true'
 dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category=SqlServer'
 # Or run every unit/mapping/API/SQL test:
-dotnet test ERP.Discounts.sln
+dotnet test ERP.sln
 Remove-Item Env:ERP_DISCOUNTS_TEST_CONNECTION
 ```
 
@@ -204,8 +204,8 @@ Future discussion: a new category adds a provider/repository/tables and a priori
 
 The approved plan is [docs/superpowers/plans/2026-11-08-erp-discounts.md](docs/superpowers/plans/2026-11-08-erp-discounts.md); the supplied specification is preserved beside it under docs/superpowers/specs. Commits follow domain/calculator/engine, providers, Dapper, SQL, integration tests and API, with tests included in each increment.
 
-The original implementation's SQL Server2019 LocalDB runs are historical. The current modules target SQL Server2022; current build, test, dependency-audit and live walkthrough results are recorded in [docs/verification.md](docs/verification.md). Prior references to engine failures or offline auditing there describe earlier development states, not the current result.
+The original implementation's SQL Server 2019 LocalDB runs are historical. The current modules target SQL Server 2022; current build, test, dependency-audit and live walkthrough results are recorded in [docs/verification.md](docs/verification.md). Prior references to engine failures or offline auditing there describe earlier development states, not the current result.
 
 ## SQL Server 2022 environment
 
-Use a native SQL Server 2022 instance with Windows authentication, or set MSSQL_SA_PASSWORD in your shell/local ignored .env and run `docker compose up -d sqlserver`. For Docker, set SQLCMDPASSWORD to that password and deploy with `./sql/discounts/Deploy.ps1 -UserName sa`. Override ConnectionStrings__Discounts and ERP_DISCOUNTS_TEST_CONNECTION with SQL-auth connection strings from your local environment. Never commit passwords. Both modules target engine16 and compatibility160; historical LocalDB2019 evidence does not verify the new target.
+Use a native SQL Server 2022 instance with Windows authentication, or set MSSQL_SA_PASSWORD in your shell/local ignored .env and run `docker compose up -d sqlserver`. For Docker, set SQLCMDPASSWORD to that password and deploy with `./sql/discounts/Deploy.ps1 -UserName sa`. Override ConnectionStrings__Discounts and ERP_DISCOUNTS_TEST_CONNECTION with SQL-auth connection strings from your local environment. Never commit passwords. Both modules target engine 16 and compatibility 160; historical LocalDB2019 evidence does not verify the new target.

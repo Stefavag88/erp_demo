@@ -25,7 +25,7 @@ Accordingly, preserve all four discount production projects and move them beneat
 
 ## Repository and project layout
 
-Keep ERP.Discounts.sln as the solution filename for this work. A solution rename is cosmetic and unnecessary. Target layout:
+Use ERP.sln as the solution filename, per the user's updated naming preference. Mirror each module folder under both src and tests in Solution Explorer. Target layout:
 
 ```text
 src/

@@ -102,3 +102,14 @@ The user authorized this as a separate commit after the registration fix (99bc89
 - The Release API returned HTTP 200 with finalAmount 280.70, totalDiscount 59.30 and three discounts after fresh SQL deployment and a repeated seed run. The temporary API process and generated database were removed.
 - The online transitive dependency audit completed against the configured NuGet feeds and reported no known vulnerable packages in any project. This supersedes the earlier offline-audit limitation for the current dependency set; it is a point-in-time check.
 - SUBMISSION.md documents the clean setup, tests and approved differences from the historical specification. Source archives exclude Git internals, build output, package caches and local verification files.
+
+
+## ERP modules: review fixes, organization and commit verification (2026-11-09)
+
+- The solution is now ERP.sln, with Discounts and CustomerCustomFields solution folders under src and tests. The Visual Studio metadata from the old solution was preserved. Both SQL fixtures locate the renamed solution.
+- Customer domain records each have their own Models file; CustomFieldType is in Domain.Enums with updated imports. Discounts already used individual Models/Enums files. Formatting preserved the C# declarations, SQL behavior/comments and UI behavior.
+- Final review findings were addressed: stale profile/history responses cannot replace the selected customer, Save retains the correct customer context, multiline text uses a textarea, full provisioning rejects an existing database before schema mutation, and Unicode blank option labels are rejected in both HTTP and SQL validation. Existing pricing validation cases now use a valid customer GUID so they exercise their intended invalid input.
+- Fresh complete verification: `dotnet test ERP.sln -c Release -m:1 -nr:false -p:UseSharedCompilation=false -v:minimal` passed 78 discount unit, 97 discount integration, 9 customer-fields unit and 19 customer-fields integration tests: **203 passed, zero failures/skips**, against SQL Server 2022. The prior usage-limit block no longer prevented execution.
+- `node --test tests/CustomerCustomFields/UI/profile.test.cjs` passed all four tests. These use Node's built-in test/VM modules and the actual application JavaScript, without additional packages. They cover stale profile responses, removal of obsolete controls, stale history and unchanged multiline text.
+- All twelve projects are recognized by `dotnet sln ERP.sln list`; whitespace checks pass. No external customer-ID generator was added: creation uses Guid.NewGuid().
+- The earlier clean-extraction run passed all 200 tests that existed before these review regressions. That historical archive is not a final package of the latest commits; a refreshed source archive and extraction rehearsal remain a separate delivery step.

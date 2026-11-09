@@ -70,4 +70,4 @@ History uses temporal current/history versions and LAG ordered by ValueVersion. 
 
 Field/option soft deactivation preserves values and history. Previously selected inactive options can be retained, removed and displayed by stable labels, but not newly added. Field keys/types and existing option labels cannot be renamed through this API. Supporting historical labels after future renames would require temporal option metadata or label snapshots.
 
-Development authentication supplies seeded actor1; outside Development that scheme supplies no identity and challenges401. Real ERP authentication is an integration seam. All API routes require authentication; actors never come from body/header data. The plain UI uses text-safe DOM operations for labels and values.
+Development authentication supplies seeded actor 1; outside Development that scheme supplies no identity and challenges 401. Real ERP authentication is an integration seam. All API routes require authentication; actors never come from body/header data. The plain UI uses text-safe DOM operations for labels and values.

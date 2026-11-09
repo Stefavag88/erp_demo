@@ -1,3 +1,5 @@
+Execution status: implementation and review fixes are committed; current verification is recorded in docs/verification.md. The final combined source archive refresh remains a separate delivery step. Historical checkboxes below describe the original task breakdown.
+
 > Update from the user during execution: use regular application-generated Guid.NewGuid() customer IDs. No COMB or external GUID library is permitted. This overrides every generator/ordering/package instruction below; verify GUID round-trips, not sequential ordering. Module/project boundaries and all other behavior are unchanged.
 
 # Discounts Module Preparation Implementation Plan
@@ -35,20 +37,20 @@
 
 - Move existing production project directories under src/Discounts and tests under tests/Discounts, preserving filenames.
 - Move sql/000_create_database.sql through sql/004_seed_demo_data.sql and sql/Deploy.ps1 under sql/discounts.
-- Update ERP.Discounts.sln, each moved csproj, README.md, SUBMISSION.md and samples/pricing.http as relevant to each commit.
+- Update ERP.sln, each moved csproj, README.md, SUBMISSION.md and samples/pricing.http as relevant to each commit.
 - Unit command after the move: `dotnet test tests/Discounts/ERP.Discounts.UnitTests -c Release`.
 - Integration command: `dotnet test tests/Discounts/ERP.Discounts.IntegrationTests -c Release`; with ERP_DISCOUNTS_TEST_CONNECTION unset, SQL cases skip explicitly.
-- Full SQL verification: set ERP_DISCOUNTS_TEST_CONNECTION to the available SQL Server 2022 master connection, then `dotnet test ERP.Discounts.sln -c Release`. Never print a credential-bearing connection string.
+- Full SQL verification: set ERP_DISCOUNTS_TEST_CONNECTION to the available SQL Server 2022 master connection, then `dotnet test ERP.sln -c Release`. Never print a credential-bearing connection string.
 
 ## Task 1: Move discounts into its module folders
 
-**Files:** Move the four existing src/ERP.Discounts.* directories to src/Discounts/ and the two tests/ERP.Discounts.* directories to tests/Discounts/. Move sql scripts to sql/discounts/. Modify ERP.Discounts.sln, moved csproj references, tests/Discounts/ERP.Discounts.IntegrationTests/Sql/SqlServerFixture.cs, README.md and SUBMISSION.md.
+**Files:** Move the four existing src/ERP.Discounts.* directories to src/Discounts/ and the two tests/ERP.Discounts.* directories to tests/Discounts/. Move sql scripts to sql/discounts/. Modify ERP.sln, moved csproj references, tests/Discounts/ERP.Discounts.IntegrationTests/Sql/SqlServerFixture.cs, README.md and SUBMISSION.md.
 
-**Interfaces:** Preserve all existing public C# signatures, assemblies and namespaces. SqlServerFixture.ApplyAsync(int number) resolves scripts below sql/discounts after finding ERP.Discounts.sln.
+**Interfaces:** Preserve all existing public C# signatures, assemblies and namespaces. SqlServerFixture.ApplyAsync(int number) resolves scripts below sql/discounts after finding ERP.sln.
 
 - [ ] Run the existing unit suite and non-SQL integration suite before moving; record counts and any existing failures. Do not silently use SQL Server 2019 as current-target evidence.
 - [ ] Move with Git-aware history preservation, update all project/solution/fixture/sample documentation paths, and keep existing project references within the module. Do not consolidate assemblies or change engine logic.
-- [ ] Run `dotnet build ERP.Discounts.sln -c Release` and both fast commands above with SQL opt-in unset. Expected: build clean, unit/non-SQL tests pass, SQL tests explicitly skip. Once a 2022 instance is available, verify fixture path resolution with a real SQL test.
+- [ ] Run `dotnet build ERP.sln -c Release` and both fast commands above with SQL opt-in unset. Expected: build clean, unit/non-SQL tests pass, SQL tests explicitly skip. Once a 2022 instance is available, verify fixture path resolution with a real SQL test.
 - [ ] Inspect `git diff --stat` and rename detection for unintended deletions. Commit `refactor: group discount projects and scripts by module`.
 
 ## Task 2: Establish SQL Server 2022 provisioning and verification
