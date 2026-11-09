@@ -1,1 +1,5 @@
-<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../ERP.CustomerCustomFields.Domain/ERP.CustomerCustomFields.Domain.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../ERP.CustomerCustomFields.Domain/ERP.CustomerCustomFields.Domain.csproj" />
+  </ItemGroup>
+</Project>
