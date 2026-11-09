@@ -5,6 +5,10 @@ namespace ERP.Discounts.IntegrationTests.Sql;
 // Provisioning and fixture DDL are test-only. Runtime repositories never execute SQL text.
 public sealed class SqlServerFixture : IAsyncDisposable
 {
+    public static void RequireVersion(int major)
+    {
+        if (major != 16) throw new InvalidOperationException("SQL Server 2022 (16.x) is required.");
+    }
     private readonly SqlConnectionStringBuilder settings;
     public string DatabaseName { get; } = "ERPDiscounts_Test_" + Guid.NewGuid().ToString("N");
     public string ConnectionString { get { var copy=new SqlConnectionStringBuilder(settings.ConnectionString){InitialCatalog=DatabaseName}; return copy.ConnectionString; } }
@@ -12,7 +16,11 @@ public sealed class SqlServerFixture : IAsyncDisposable
     public static async Task<SqlServerFixture> CreateAsync(int through = 4)
     {
         var fixture=new SqlServerFixture(Environment.GetEnvironmentVariable("ERP_DISCOUNTS_TEST_CONNECTION") ?? throw new InvalidOperationException("SQL tests require opt-in connection."));
-        try { for(var i=0;i<=through;i++) await fixture.ApplyAsync(i); return fixture; }
+        try {
+            var version = await fixture.RunAsync(["-d","master","-Q","SET NOCOUNT ON; SELECT CONVERT(int,SERVERPROPERTY('ProductMajorVersion'));"]);
+            RequireVersion(int.Parse(version.Trim(), System.Globalization.CultureInfo.InvariantCulture));
+            for(var i=0;i<=through;i++) await fixture.ApplyAsync(i); return fixture;
+        }
         catch { await fixture.DisposeAsync(); throw; }
     }
     public async Task ApplyAsync(int number)

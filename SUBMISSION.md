@@ -4,7 +4,7 @@ This archive contains the complete .NET 10 discount subsystem source, unit/integ
 
 ## Run the demonstration
 
-Prerequisites: .NET 10 SDK, SQL Server and sqlcmd. The supplied development connection uses Windows LocalDB and Windows authentication; other SQL Server connections can be supplied through ConnectionStrings__Discounts.
+Prerequisites: .NET 10 SDK, SQL Server and sqlcmd. The supplied development connection uses SQL Server 2022 and Windows authentication; other SQL Server connections can be supplied through ConnectionStrings__Discounts.
 
 From the extracted project directory, using a fresh database:
 
@@ -24,7 +24,7 @@ The default database is ERPDiscounts. If that name is already in use, choose a f
 ```powershell
 dotnet test tests/Discounts/ERP.Discounts.UnitTests -c Release
 dotnet test tests/Discounts/ERP.Discounts.IntegrationTests -c Release --filter 'Category!=SqlServer'
-$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=(localdb)\MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true'
+$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=localhost,1433;Integrated Security=true;TrustServerCertificate=true'
 dotnet test ERP.Discounts.sln -c Release
 ```
 
@@ -42,3 +42,7 @@ The initial specification is preserved under docs/superpowers/specs as a histori
 - No ERP Orders access, result persistence, coupon redemption, EF, message bus or distributed cache is added.
 
 The solution demonstrates an assignment-sized capability. The README documents cache staleness, independent database reads, the local-demo certificate setting and future extensions.
+
+## SQL Server 2022 environment
+
+Use a native SQL Server 2022 instance with Windows authentication, or set MSSQL_SA_PASSWORD in your shell/local ignored .env and run `docker compose up -d sqlserver`. For Docker, set SQLCMDPASSWORD to that password and deploy with `./sql/discounts/Deploy.ps1 -UserName sa`. Override ConnectionStrings__Discounts and ERP_DISCOUNTS_TEST_CONNECTION with SQL-auth connection strings from your local environment. Never commit passwords. Both modules target engine16 and compatibility160; historical LocalDB2019 evidence does not verify the new target.

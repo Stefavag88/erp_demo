@@ -6,20 +6,20 @@ For the delivery quickstart and agreed scope, see [SUBMISSION.md](SUBMISSION.md)
 
 ## Setup and run
 
-Prerequisites: .NET 10 SDK, SQL Server (LocalDB works on Windows), and sqlcmd on PATH. The runtime uses Dapper 2.1.89, Microsoft.Data.SqlClient 7.1.1 and xUnit v3 for tests. No EF or migrations are used.
+Prerequisites: .NET 10 SDK, SQL Server (SQL Server 2022 / 16.x), and sqlcmd on PATH. The runtime uses Dapper 2.1.89, Microsoft.Data.SqlClient 7.1.1 and xUnit v3 for tests. No EF or migrations are used.
 
 From this directory in PowerShell:
 
 ```powershell
 dotnet restore ERP.Discounts.sln
 dotnet build ERP.Discounts.sln
-# For Windows LocalDB, if needed:
-SqlLocalDB start MSSQLLocalDB
+# For SQL Server 2022, if needed:
+docker compose up -d sqlserver
 .\sql\discounts\Deploy.ps1
 dotnet run --project src/Discounts/ERP.Discounts.Api --no-launch-profile --urls http://localhost:5080
 ```
 
-appsettings.json provides a local default under ConnectionStrings:Discounts: `Server=(localdb)\MSSQLLocalDB;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;`. It uses the current Windows identity and contains no password. Run the SQL scripts first to create and seed that database; the API does not create it automatically. The key is Discounts because Program.cs reads GetConnectionString("Discounts"), rather than DefaultConnection.
+appsettings.json provides a local default under ConnectionStrings:Discounts: `Server=localhost,1433;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;`. It uses the current Windows identity and contains no password. Use SQL Server 2022 (16.x) at compatibility 160. Run the SQL scripts first to create and seed that database; the API does not create it automatically. The key is Discounts because Program.cs reads GetConnectionString("Discounts"), rather than DefaultConnection.
 
 For another server/database, override it with `$env:ConnectionStrings__Discounts = 'your connection string'` or .NET user secrets. TrustServerCertificate and the script's sqlcmd -C flag are local-demo conveniences. For a remote instance configure a validated server certificate. Keep actual passwords out of appsettings and Git. The API requires a nonblank ConnectionStrings:Discounts value at startup and exposes one pricing endpoint.
 
@@ -36,7 +36,7 @@ Deploy.ps1 defaults to database ERPDiscounts and Windows integrated authenticati
 To run manually:
 
 ```powershell
-sqlcmd -S '(localdb)\MSSQLLocalDB' -E -C -b -v DatabaseName=ERPDiscounts -i sql/discounts/000_create_database.sql
+sqlcmd -S 'localhost,1433' -E -C -b -v DatabaseName=ERPDiscounts -i sql/discounts/000_create_database.sql
 # Repeat this command for 001, 002, 003 and 004 in order.
 ```
 
@@ -131,7 +131,7 @@ dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category!=S
 Run all SQL Server tests (including seeded HTTP) explicitly:
 
 ```powershell
-$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=(localdb)\MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true'
+$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=localhost,1433;Integrated Security=true;TrustServerCertificate=true'
 dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category=SqlServer'
 # Or run every unit/mapping/API/SQL test:
 dotnet test ERP.Discounts.sln
@@ -194,3 +194,7 @@ Future discussion: a new category adds a provider/repository/tables and a priori
 The approved plan is [docs/superpowers/plans/2026-11-08-erp-discounts.md](docs/superpowers/plans/2026-11-08-erp-discounts.md); the supplied specification is preserved beside it under docs/superpowers/specs. Commits follow domain/calculator/engine, providers, Dapper, SQL, integration tests and API, with tests included in each increment.
 
 The initial implementation was verified on 2026-11-08 using .NET SDK 10.0.403 and SQL Server 2019 LocalDB: 72 unit and 42 integration tests passed. Subsequent changes have separate verification entries in [docs/verification.md](docs/verification.md). The previously documented duplicate-provider regression has been fixed; all 78 unit tests pass. SQL Server tests and the executable HTTP smoke run against real LocalDB. Local functional checks use cached restores with auditing disabled; no claim of a successful online dependency audit is made. The user's dependency updates and the added cache/Polly packages are recorded in the project files; the committed audit policy remains unchanged.
+
+## SQL Server 2022 environment
+
+Use a native SQL Server 2022 instance with Windows authentication, or set MSSQL_SA_PASSWORD in your shell/local ignored .env and run `docker compose up -d sqlserver`. For Docker, set SQLCMDPASSWORD to that password and deploy with `./sql/discounts/Deploy.ps1 -UserName sa`. Override ConnectionStrings__Discounts and ERP_DISCOUNTS_TEST_CONNECTION with SQL-auth connection strings from your local environment. Never commit passwords. Both modules target engine16 and compatibility160; historical LocalDB2019 evidence does not verify the new target.
