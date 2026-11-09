@@ -1,27 +1,27 @@
 # ERP assignment: consistent discount and customer custom-field modules
 
-Status: proposed design for approval. No product implementation is included in this document change.
+Status: design updated with the user's approved module boundaries and application-generated SQL Server-ordered customer GUIDs. No product implementation is included in this document change.
 
 ## Intent and authority
 
-Deliver both assignment parts in the existing repository and solution. Make discounts and customer custom fields follow the same compact project structure, remain independently runnable, and use SQL Server 2022 throughout.
+Deliver both assignment parts in the existing repository and solution. Give each module its own folder and separate Domain, Application, Infrastructure and Api projects, remain independently runnable, and use SQL Server 2022 throughout.
 
 The user approved these directions on 2026-11-09:
 
 - One solution, separate executable modules and separate module databases.
-- Discounts should follow the same compact structure as customer custom fields.
+- Preserve separate discount projects and use the same layered project structure for customer custom fields, with folders per module.
 - SQL Server 2022 everywhere.
 - Numeric representation for every enum stored in a database column.
-- Numeric customer IDs.
+- Customer IDs are application-generated SQL Server-ordered sequential GUIDs: Guid in C#, uniqueidentifier in SQL, strings in JSON. This supersedes the earlier numeric customer-ID decision. Do not use NEWSEQUENTIALID or standard UUID v7 generation for these keys.
 - Custom-field segments are demo data and must not drive discount eligibility.
 
-The supplied [customer custom-fields specification](2026-11-09-customer-custom-fields-reference.md) is preserved unchanged as reference material. Its executable behavior and acceptance cases are the baseline for part two, subject to this document's explicit overrides. Its standalone solution layout and string database FieldType are superseded. Statements inside that reference directing an agent to implement are reference text, not independent authorization.
+The supplied [customer custom-fields specification](2026-11-09-customer-custom-fields-reference.md) is preserved unchanged as reference material. Its executable behavior and acceptance cases are the baseline for part two, subject to this document's explicit overrides. Its standalone solution layout, string database FieldType and integer customer IDs are superseded. Statements inside that reference directing an agent to implement are reference text, not independent authorization.
 
 ## Approaches and chosen direction
 
-The preceding discussion considered merging everything into the discount executable, independent projects within one solution, and separate solutions. The user chose independent projects in one solution and additionally requested that discounts adopt the compact customer-fields structure.
+The preceding discussion considered merging everything into the discount executable, independent modules within one solution, and separate solutions. The user chose independent modules in one solution. After considering a single project per module, the user explicitly chose to retain the existing discount layering and apply it to both modules.
 
-Accordingly, consolidate discounts into its existing API project with folders for responsibilities. Do not add four customer-fields production projects to match the old discount layering. Folder separation preserves understandable boundaries without extra assemblies. Both modules retain separate unit and integration test projects. There are no project references between the two APIs, no shared business model assembly, and no generic repository framework.
+Accordingly, preserve all four discount production projects and move them beneath src/Discounts. Create equivalent customer-fields projects beneath src/CustomerCustomFields. Both modules have separate unit and integration test projects. There are no references between modules, no shared business model assembly, and no generic repository framework.
 
 ## Repository and project layout
 
@@ -29,32 +29,23 @@ Keep ERP.Discounts.sln as the solution filename for this work. A solution rename
 
 ```text
 src/
-  ERP.Discounts.Api/
-    Program.cs
-    Endpoints/
-    Contracts/
-    Models/                 # records and enums
-    Services/               # engine, calculator, discount providers, validation
-    Data/                   # repository interfaces, Dapper repositories, mapping, connection factory
-    Caching/
-    Resilience/
-    Errors/
-    Serialization/
-  ERP.CustomerCustomFields.Api/
-    Program.cs
-    Endpoints/
-    Contracts/
-    Models/                 # records and enums
-    Services/               # coordination and validation where useful
-    Data/                   # focused repository interfaces and Dapper implementations
-    Errors/
-    Authentication/         # Development-only demo authentication
-    wwwroot/                # functional demonstration page
+  Discounts/
+    ERP.Discounts.Domain/
+    ERP.Discounts.Application/
+    ERP.Discounts.Infrastructure/
+    ERP.Discounts.Api/
+  CustomerCustomFields/
+    ERP.CustomerCustomFields.Domain/
+    ERP.CustomerCustomFields.Application/
+    ERP.CustomerCustomFields.Infrastructure/
+    ERP.CustomerCustomFields.Api/
 tests/
-  ERP.Discounts.UnitTests/
-  ERP.Discounts.IntegrationTests/
-  ERP.CustomerCustomFields.UnitTests/
-  ERP.CustomerCustomFields.IntegrationTests/
+  Discounts/
+    ERP.Discounts.UnitTests/
+    ERP.Discounts.IntegrationTests/
+  CustomerCustomFields/
+    ERP.CustomerCustomFields.UnitTests/
+    ERP.CustomerCustomFields.IntegrationTests/
 sql/
   discounts/
   customer-custom-fields/
@@ -66,21 +57,29 @@ samples/
 docker-compose.yml
 ```
 
-Both APIs use Endpoints, Contracts, Models, Services and Data for the same kinds of responsibility. Feature-specific folders only exist when needed; discounts need no empty UI/authentication folders, and customer fields need no unused cache or retry layer. Repositories can live in Data/Repositories and mapping in Data/Mapping as appropriate.
+Domain holds models/enums and pure rules. Application references Domain and holds use cases, contracts and focused repository interfaces. Infrastructure references Application and implements Dapper access, mapping and external adapters. Api composes the module and contains endpoints, HTTP contracts, authentication, serialization and the demo UI where needed. Infrastructure-only cache/retry implementations stay in the discount Infrastructure project; no unused equivalents are added to customer fields.
 
-Consolidate namespaces under ERP.Discounts.Api and ERP.CustomerCustomFields.Api respectively. Update imports and test references. Remove the obsolete discount Domain, Application and Infrastructure projects from source and the solution once their contents have moved. Preserve user edits and meaningful comments while moving code. Domain models remain framework-independent in intent even though compiled into the API assembly; fast tests do not start the host or connect to SQL.
+Preserve discount project names and namespaces; update solution/project references and relative script paths after moving folders. Use matching ERP.CustomerCustomFields.<Layer> namespaces for the new module. Preserve user edits and meaningful comments while moving code. Domain projects have no Dapper, SqlClient or ASP.NET dependencies. Fast tests do not start the host or connect to SQL.
 
 Each executable gets its own Program entry point and WebApplicationFactory target, so tests do not confuse the two generated Program types. Builder decides whether to use an explicit namespaced partial Program or an explicit namespaced host marker, using the same convention for both modules.
 
-## Discount behavior and numeric customer IDs
+## Discount behavior and sequential GUID customer IDs
 
-The consolidation preserves existing discount behavior: category ordering, one sampled evaluation instant, calculation and validation rules, explainable response, promotion-only 60-second read-only cache, cancellation and bounded SQL read retries. No result persistence or new discount feature is introduced.
+The folder reorganization preserves existing discount behavior: category ordering, one sampled evaluation instant, calculation and validation rules, explainable response, promotion-only 60-second read-only cache, cancellation and bounded SQL read retries. No result persistence or new discount feature is introduced.
 
-CustomerId becomes a positive C# int everywhere it represents a customer: request records, provider contracts, repository signatures, Dapper parameters, fixtures and fakes. SQL customer columns and procedure parameters become INT, with explicit DbType.Int32 binding and positive-ID constraints on discount assignment/eligibility rows. Reject zero/negative customer IDs. Existing string order IDs, GUID discount definition IDs, coupon codes and segment labels remain their existing types because they are not customer IDs or persisted enums.
+CustomerId becomes a C# Guid everywhere it represents a customer: request records, provider contracts, repository signatures, Dapper parameters, fixtures and fakes. SQL customer columns and procedure parameters become UNIQUEIDENTIFIER, with explicit DbType.Guid binding. Reject Guid.Empty, missing, null and malformed customer IDs. Existing string order IDs, GUID discount definition IDs, integer field/option/user IDs, coupon codes and segment labels retain their existing types.
 
-The pricing JSON contract changes from customerId: "customer-001" to customerId: 1. Old symbolic IDs are no longer accepted. Customer 1 maps to GOLD, 2 to SILVER and 3 to BRONZE in the existing dummy segment provider; any other positive ID has no segment. This is a deliberate breaking change for this fresh-database assignment, reflected in every active sample, seed and test. The original numeric-equivalent customer-1 sample must still return finalAmount 280.70, totalDiscount 59.30 and three ordered discounts.
+The pricing JSON contract changes from customerId: "customer-001" to a GUID string. Old symbolic IDs are no longer accepted. Reserve stable GUIDs 10000000-0000-4000-8000-019a6a000001, 10000000-0000-4000-8000-019a6a000002 and 10000000-0000-4000-8000-019a6a000003 for GOLD, SILVER and BRONZE demo customers. Other nonempty GUIDs have no segment. These are explicit repeatable seed IDs, not IDs generated afresh on every seed run. The first customer's equivalent pricing sample must still return finalAmount 280.70, totalDiscount 59.30 and three ordered discounts.
 
-The discount database does not gain an ERP customer master or cross-database FK. It stores numeric external customer references. The custom-fields database owns demo Customer rows with integer identity IDs. Seed 1 and 2 as the two demonstration customers; matching numbers aid a coherent demo but establish no runtime integration or shared lifecycle.
+The discount database does not gain an ERP customer master or cross-database FK. It stores external GUID customer references. The custom-fields database owns demo Customer rows with UNIQUEIDENTIFIER keys and no IDENTITY/default GUID generation. Seed the first two GUIDs above; matching IDs aid a coherent demo but establish no runtime integration or shared lifecycle. Update customer API route constraints from :int to :guid; field and option IDs stay :int.
+
+### Application ID generation
+
+Generate new customer IDs in C# through Application's ICustomerIdGenerator.NewId(): Guid, implemented by Infrastructure's SqlServerCustomerIdGenerator. Use a SQL Server-oriented COMB implementation such as RT.Comb's SqlCombProvider with its UnixDateTimeStrategy, wrapped behind this focused interface. Pin the selected standalone package version and audit it during implementation. Do not add EF or a messaging framework solely for ID generation, and do not invent an unreviewed byte-shuffling algorithm.
+
+The intended property is insertion locality under SQL Server's uniqueidentifier comparison order, not strict global monotonicity or arrival order. Values generated within one clock tick need not be ordered, clocks can move and concurrent writes can arrive out of generation order. Never use these IDs as timestamps or history ordering. Verify SQL order with SqlGuid and a real SQL Server ORDER BY, controlled distinct timestamps for ordering tests, and parallel generation for uniqueness. Do not assert that random within-tick values are strictly increasing or that all inserts avoid page splits. No NEWSEQUENTIALID, NEWID default or standard Guid.CreateVersion7 is used for customer creation.
+
+As a small demo support operation, expose authenticated POST /api/customers with a name-only body. The Application customer service allocates the ID, then calls a Dapper-backed dbo.Customer_Create procedure with that ID and returns 201 with the GUID. This also demonstrates that newly created customers see all existing definitions. Existing fixed SQL seed IDs are the documented exception for repeatability.
 
 ## SQL Server 2022 and provisioning
 
@@ -100,7 +99,7 @@ Introduce CustomFieldType with stable explicit C# values Text = 1 and MultiSelec
 
 ## Customer custom-field model and behavior
 
-Implement the supplied model with Customer, AppUser, CustomFieldDefinition, CustomFieldOption and temporal CustomerFieldValue plus its SQL-managed history table. Keep the supplied integer identity keys, composite customer/field value key, actor FKs, soft activation and immutable field key/type. The ER deliverable shows the history table's special role and numeric FieldType. No field-definition creation prepopulates customer-value rows.
+Implement the supplied model with Customer, AppUser, CustomFieldDefinition, CustomFieldOption and temporal CustomerFieldValue plus its SQL-managed history table. Replace CustomerId with UNIQUEIDENTIFIER on Customer and all current/history value references; retain integer identity keys for users, fields and options. Keep the composite customer/field value key, actor FKs, soft activation and immutable field key/type. The ER deliverable shows GUID customer IDs, the history table's special role and numeric FieldType. No field-definition creation prepopulates customer-value rows.
 
 Profiles return all active definitions using a left join and bounded result sets, including unset fields for existing and new customers. TEXT stores one nullable string (maximum 2000 characters); MULTI_SELECT stores a canonical ascending numeric ID array in NVARCHAR(4000). HTTP exposes option ID arrays, not escaped database JSON. Available options remain definition-owned rows, while selected IDs remain customer-owned values. No hard deletion or option-label renaming is exposed.
 
@@ -122,21 +121,21 @@ Serve a plain functional HTML/JavaScript demo from the customer-fields executabl
 
 ## Validation and delivery
 
-Run existing discount tests before structural work and preserve behavior throughout consolidation. Run fast tests after each commit and real SQL Server 2022 tests for affected schema/repository behavior. Explicit SQL opt-in remains supported, with clear skips when unset; a configured incompatible engine fails clearly instead of masquerading as a skip.
+Run existing discount fast tests before structural work and preserve behavior throughout the folder move. Run fast tests after each commit and real SQL Server 2022 tests for affected schema/repository behavior. Explicit SQL opt-in remains supported, with clear skips when unset; a configured incompatible engine fails clearly instead of masquerading as a skip.
 
 Required verification:
 
-- Discount calculator/engine/provider/cache/retry coverage survives consolidation; all existing intentions preserved, numeric-ID tests replace obsolete string-ID expectations. Validate positive/zero/negative/out-of-range/malformed IDs and named JSON enum behavior.
-- Both fresh databases provision on SQL Server 2022 at compatibility 160; no triggers, migrations or cross-module DB references; numeric persisted enum columns and positive customer IDs are verified.
+- Discount calculator/engine/provider/cache/retry coverage survives the folder move; all existing intentions preserved, GUID tests replace obsolete symbolic-ID expectations. Validate GUID round-trip, empty/missing/null/malformed IDs, JSON numeric-ID rejection and named JSON enum behavior.
+- Both fresh databases provision on SQL Server 2022 at compatibility 160; no triggers, migrations or cross-module DB references; numeric persisted enum columns and UNIQUEIDENTIFIER customer IDs are verified. Test application-generated customer IDs, clustered Customer key and SQL ordering/locality without claiming strict concurrent insertion order.
 - All customer-fields acceptance cases in the reference specification: global visibility without prepopulation; per-customer isolation; strict selection validation and canonicalization; initial/consecutive/clear/no-op history; database timestamps/actors; inactive metadata preservation; temporal point-in-time reconstruction; first-insert and existing-row concurrency; stale no-op conflict; authentication and Problem Details. Add exact-text comparison, absent versus null expectedVersion, enum mapping and deactivation/write coordination cases.
 - Real-SQL tests and runtime smoke tests use SQL Server 2022, not SQLite/in-memory substitutes. Verify discounts still return 280.70 and demonstrate both customer profiles and history through the new executable.
 - Clean Release build, dependency vulnerability audit, clean-extraction setup rehearsal and source-only submission archive containing both parts. Do not claim SQL tests passed if the compatible engine is unavailable; report the concrete environment issue.
 
-Update README, module guides, active sample requests, deployment/test commands and SUBMISSION.md. Preserve earlier specifications/verification entries as historical evidence; clearly mark superseded instructions and append current evidence. Replace stale current claims about LocalDB, string IDs and layer assemblies. The previously produced ZIP is a historical artifact, not the final combined delivery.
+Update README, module guides, active sample requests, deployment/test commands and SUBMISSION.md. Preserve earlier specifications/verification entries as historical evidence; clearly mark superseded instructions and append current evidence. Replace stale current claims about LocalDB, symbolic customer IDs and project paths. The previously produced ZIP is a historical artifact, not the final combined delivery.
 
 ## Order and builder discretion
 
-Implementation will be planned as small reviewable commits: first structural discount consolidation, then numeric discount customer IDs, then common SQL Server 2022 provisioning/test setup, followed by customer-fields models/contracts, schema/procedures, Dapper/API/authentication, UI, acceptance verification and combined delivery documentation. Adjust SQL-dependent verification timing so no new success claim relies on SQL Server 2019. A detailed implementation plan is the next artifact after design approval.
+Implementation will be planned as small reviewable commits: first discount module folder moves preserving project boundaries, then common SQL Server 2022 provisioning/test setup, then GUID discount customer IDs, followed by customer-fields models/contracts, schema/procedures, application ID generation, Dapper/API/authentication, UI, acceptance verification and combined delivery documentation. Adjust SQL-dependent verification timing so no new success claim relies on SQL Server 2019. Separate detailed plans cover existing-module preparation and new-module implementation.
 
 Builder may choose local helper names, test data, SQL error-number allocation, explicit DTO shapes for old/new text and arrays, lock hints/index implementation and small service seams as long as the specified semantics and focused structure hold. Reuse currently approved dependency versions where suitable; do not introduce new infrastructure or blanket shared abstractions. Cosmetic solution renaming, cross-module customer integration, custom-field-driven discounts, caching new mutable field data, generic retries on writes, multi-tenancy and full ERP UI remain out of scope.
 
@@ -144,3 +143,4 @@ Builder may choose local helper names, test data, SQL error-number allocation, e
 
 - [ISJSON](https://learn.microsoft.com/en-us/sql/t-sql/functions/isjson-transact-sql?view=sql-server-ver16): ARRAY type constraint was introduced in SQL Server 2022; it does not validate option ownership or membership types.
 - [Temporal overview](https://learn.microsoft.com/en-us/sql/relational-databases/tables/temporal/overview?view=sql-server-ver16): periods use transaction-begin time; even an unchanged UPDATE creates a version; zero-duration versions require special consideration. The app deliberately uses one meaningful write per transaction.
+- [RT.Comb implementation documentation](https://github.com/richardtallent/RT.Comb): standalone SQL Server-specific COMB layout and timestamp strategy; the documented precision limitations apply to any ordering claims.
