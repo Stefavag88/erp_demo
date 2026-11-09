@@ -15,8 +15,8 @@ dotnet restore ERP.Discounts.sln
 dotnet build ERP.Discounts.sln
 # For Windows LocalDB, if needed:
 SqlLocalDB start MSSQLLocalDB
-.\sql\Deploy.ps1
-dotnet run --project src/ERP.Discounts.Api --no-launch-profile --urls http://localhost:5080
+.\sql\discounts\Deploy.ps1
+dotnet run --project src/Discounts/ERP.Discounts.Api --no-launch-profile --urls http://localhost:5080
 ```
 
 appsettings.json provides a local default under ConnectionStrings:Discounts: `Server=(localdb)\MSSQLLocalDB;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;`. It uses the current Windows identity and contains no password. Run the SQL scripts first to create and seed that database; the API does not create it automatically. The key is Discounts because Program.cs reads GetConnectionString("Discounts"), rather than DefaultConnection.
@@ -31,12 +31,12 @@ Database objects come exclusively from these SQL scripts, in order:
 4. 003_create_stored_procedures.sql — three CREATE OR ALTER read procedures.
 5. 004_seed_demo_data.sql — transactional, repeatable stable-key upserts.
 
-Deploy.ps1 defaults to database ERPDiscounts and Windows integrated authentication. For another SQL Server use `-Server 'server\instance'` and optionally `-DatabaseName ERPDiscountsDemo`. Schema scripts 001–002 are one-time provisioning; rerun 003 to update procedures and use `.\sql\Deploy.ps1 -SeedOnly` to restore demo values. Reseeding updates known demo keys; it does not delete unrelated data. It deliberately resets demo definitions to their documented values.
+Deploy.ps1 defaults to database ERPDiscounts and Windows integrated authentication. For another SQL Server use `-Server 'server\instance'` and optionally `-DatabaseName ERPDiscountsDemo`. Schema scripts 001–002 are one-time provisioning; rerun 003 to update procedures and use `.\sql\discounts\Deploy.ps1 -SeedOnly` to restore demo values. Reseeding updates known demo keys; it does not delete unrelated data. It deliberately resets demo definitions to their documented values.
 
 To run manually:
 
 ```powershell
-sqlcmd -S '(localdb)\MSSQLLocalDB' -E -C -b -v DatabaseName=ERPDiscounts -i sql/000_create_database.sql
+sqlcmd -S '(localdb)\MSSQLLocalDB' -E -C -b -v DatabaseName=ERPDiscounts -i sql/discounts/000_create_database.sql
 # Repeat this command for 001, 002, 003 and 004 in order.
 ```
 
@@ -124,15 +124,15 @@ Invalid requests return 400; application validation supplies field-specific Prob
 Unit tests have no SQL/infrastructure reference. Mapping, memory-cache and fake-backed API tests also run without SQL:
 
 ```powershell
-dotnet test tests/ERP.Discounts.UnitTests
-dotnet test tests/ERP.Discounts.IntegrationTests --filter 'Category!=SqlServer'
+dotnet test tests/Discounts/ERP.Discounts.UnitTests
+dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category!=SqlServer'
 ```
 
 Run all SQL Server tests (including seeded HTTP) explicitly:
 
 ```powershell
 $env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=(localdb)\MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true'
-dotnet test tests/ERP.Discounts.IntegrationTests --filter 'Category=SqlServer'
+dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category=SqlServer'
 # Or run every unit/mapping/API/SQL test:
 dotnet test ERP.Discounts.sln
 Remove-Item Env:ERP_DISCOUNTS_TEST_CONNECTION

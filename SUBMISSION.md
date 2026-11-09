@@ -11,8 +11,8 @@ From the extracted project directory, using a fresh database:
 ```powershell
 dotnet restore ERP.Discounts.sln
 dotnet build ERP.Discounts.sln -c Release
-.\sql\Deploy.ps1
-dotnet run --project src/ERP.Discounts.Api -c Release --no-launch-profile --urls http://localhost:5080
+.\sql\discounts\Deploy.ps1
+dotnet run --project src/Discounts/ERP.Discounts.Api -c Release --no-launch-profile --urls http://localhost:5080
 ```
 
 Send the requests in samples/pricing.http. The primary request is customer-001, EUR 340.00 and WELCOME10; it returns three ordered discounts, totalDiscount 59.30 and finalAmount 280.70. The README includes the complete response and additional examples.
@@ -22,8 +22,8 @@ The default database is ERPDiscounts. If that name is already in use, choose a f
 ## Verify
 
 ```powershell
-dotnet test tests/ERP.Discounts.UnitTests -c Release
-dotnet test tests/ERP.Discounts.IntegrationTests -c Release --filter 'Category!=SqlServer'
+dotnet test tests/Discounts/ERP.Discounts.UnitTests -c Release
+dotnet test tests/Discounts/ERP.Discounts.IntegrationTests -c Release --filter 'Category!=SqlServer'
 $env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=(localdb)\MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true'
 dotnet test ERP.Discounts.sln -c Release
 ```

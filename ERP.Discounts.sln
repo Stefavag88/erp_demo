@@ -1,23 +1,23 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.Domain", "src\ERP.Discounts.Domain\ERP.Discounts.Domain.csproj", "{D250E2C2-AD52-4529-AA08-D45776A94ADD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.Domain", "src\Discounts\ERP.Discounts.Domain\ERP.Discounts.Domain.csproj", "{D250E2C2-AD52-4529-AA08-D45776A94ADD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.Application", "src\ERP.Discounts.Application\ERP.Discounts.Application.csproj", "{96C4EC38-C082-4FFF-AC62-DF399B0AD737}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.Application", "src\Discounts\ERP.Discounts.Application\ERP.Discounts.Application.csproj", "{96C4EC38-C082-4FFF-AC62-DF399B0AD737}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.UnitTests", "tests\ERP.Discounts.UnitTests\ERP.Discounts.UnitTests.csproj", "{75F816CF-5CE2-47AB-A786-B73A8CF14184}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.UnitTests", "tests\Discounts\ERP.Discounts.UnitTests\ERP.Discounts.UnitTests.csproj", "{75F816CF-5CE2-47AB-A786-B73A8CF14184}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.Infrastructure", "src\ERP.Discounts.Infrastructure\ERP.Discounts.Infrastructure.csproj", "{AE3598E3-C25D-4B95-9B27-B3CE47136807}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.Infrastructure", "src\Discounts\ERP.Discounts.Infrastructure\ERP.Discounts.Infrastructure.csproj", "{AE3598E3-C25D-4B95-9B27-B3CE47136807}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.IntegrationTests", "tests\ERP.Discounts.IntegrationTests\ERP.Discounts.IntegrationTests.csproj", "{51CFB487-E798-416D-BC3E-56DD2ED2912A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.IntegrationTests", "tests\Discounts\ERP.Discounts.IntegrationTests\ERP.Discounts.IntegrationTests.csproj", "{51CFB487-E798-416D-BC3E-56DD2ED2912A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.Api", "src\ERP.Discounts.Api\ERP.Discounts.Api.csproj", "{5F1AE303-7ED2-4DB2-AF25-3B8576D3BFB6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Discounts.Api", "src\Discounts\ERP.Discounts.Api\ERP.Discounts.Api.csproj", "{5F1AE303-7ED2-4DB2-AF25-3B8576D3BFB6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
