@@ -23,9 +23,9 @@ WHEN MATCHED THEN UPDATE SET PriceListId=source.PriceListId,Name=source.Name,Cal
 WHEN NOT MATCHED THEN INSERT(Id,PriceListId,Name,CalculationMethod,CalculationBase,Value,PriorityWithinType,IsActive) VALUES(source.Id,source.PriceListId,source.Name,source.CalculationMethod,source.CalculationBase,source.Value,source.PriorityWithinType,source.IsActive);
 MERGE dbo.CustomerPriceLists WITH (HOLDLOCK) AS target
 USING (VALUES
-    (N'customer-001',N'00000001-0000-0000-0000-000000000001'),
-    (N'customer-002',N'00000001-0000-0000-0000-000000000001'),
-    (N'customer-multi',N'00000002-0000-0000-0000-000000000001')
+    (N'10000000-0000-4000-8000-019a6a000001',N'00000001-0000-0000-0000-000000000001'),
+    (N'10000000-0000-4000-8000-019a6a000002',N'00000001-0000-0000-0000-000000000001'),
+    (N'10000000-0000-4000-8000-019a6a000003',N'00000002-0000-0000-0000-000000000001')
 ) AS source(CustomerId,PriceListId)
 ON target.CustomerId=source.CustomerId AND target.PriceListId=source.PriceListId
 WHEN NOT MATCHED THEN INSERT(CustomerId,PriceListId) VALUES(source.CustomerId,source.PriceListId);
@@ -57,7 +57,7 @@ WHEN MATCHED THEN UPDATE SET Code=source.Code,Name=source.Name,CalculationMethod
 WHEN NOT MATCHED THEN INSERT(Id,Code,Name,CalculationMethod,CalculationBase,Value,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc) VALUES(source.Id,source.Code,source.Name,source.CalculationMethod,source.CalculationBase,source.Value,source.PriorityWithinType,source.IsActive,source.StartsAtUtc,source.EndsAtUtc);
 MERGE dbo.CouponCustomerEligibility WITH (HOLDLOCK) AS target
 USING (VALUES
-    (N'00000032-0000-0000-0000-000000000001',N'customer-multi')
+    (N'00000032-0000-0000-0000-000000000001',N'10000000-0000-4000-8000-019a6a000003')
 ) AS source(CouponId,CustomerId)
 ON target.CouponId=source.CouponId AND target.CustomerId=source.CustomerId
 WHEN NOT MATCHED THEN INSERT(CouponId,CustomerId) VALUES(source.CouponId,source.CustomerId);

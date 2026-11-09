@@ -21,10 +21,10 @@ public class SqlReadRetryIntegrationTests
         switch (procedure)
         {
             case "dbo.usp_PriceList_GetEligible":
-                Assert.Equal(5m, Assert.Single(await new DapperPriceListRepository(factory, new SqlReadRetryPolicy(TimeProvider.System)).GetEligibleAsync("customer-001", AsOf, default)).Value);
+                Assert.Equal(5m, Assert.Single(await new DapperPriceListRepository(factory, new SqlReadRetryPolicy(TimeProvider.System)).GetEligibleAsync(Guid.Parse("10000000-0000-4000-8000-019a6a000001"), AsOf, default)).Value);
                 break;
             case "dbo.usp_Coupon_GetEligible":
-                Assert.Equal(10m, Assert.Single(await new DapperCouponRepository(factory, new SqlReadRetryPolicy(TimeProvider.System)).GetEligibleAsync("customer-001", ["WELCOME10"], AsOf, default)).Value);
+                Assert.Equal(10m, Assert.Single(await new DapperCouponRepository(factory, new SqlReadRetryPolicy(TimeProvider.System)).GetEligibleAsync(Guid.Parse("10000000-0000-4000-8000-019a6a000001"), ["WELCOME10"], AsOf, default)).Value);
                 break;
             default:
                 Assert.Equal(2, (await new DapperPromotionRepository(factory, new SqlReadRetryPolicy(TimeProvider.System)).GetDefinitionsAsync(default)).Count);
@@ -58,7 +58,7 @@ public class SqlReadRetryIntegrationTests
         await RetrySqlFaults.InstallAsync(db, "dbo.usp_PriceList_GetEligible", 100);
 
         var error = await Assert.ThrowsAsync<SqlException>(() => new DapperPriceListRepository(new SqlConnectionFactory(db.ConnectionString), new SqlReadRetryPolicy(TimeProvider.System))
-            .GetEligibleAsync("customer-001", AsOf, default));
+            .GetEligibleAsync(Guid.Parse("10000000-0000-4000-8000-019a6a000001"), AsOf, default));
 
         Assert.Equal(40197, error.Number);
         await db.SqlAsync("IF (SELECT COUNT(*) FROM dbo.RetryProbe)<>3 THROW 50000,'Retry limit was not three attempts.',1;");
@@ -70,7 +70,7 @@ public class SqlReadRetryIntegrationTests
         await using var db = await SqlServerFixture.CreateAsync();
         await RetrySqlFaults.InstallAsync(db, "dbo.usp_PriceList_GetEligible", 100, 50001);
         var error = await Assert.ThrowsAsync<SqlException>(() => new DapperPriceListRepository(new SqlConnectionFactory(db.ConnectionString), new SqlReadRetryPolicy(TimeProvider.System))
-            .GetEligibleAsync("customer-001", AsOf, default));
+            .GetEligibleAsync(Guid.Parse("10000000-0000-4000-8000-019a6a000001"), AsOf, default));
 
         Assert.Equal(50001, error.Number);
         await db.SqlAsync("IF (SELECT COUNT(*) FROM dbo.RetryProbe)<>1 THROW 50000,'Permanent failure was retried.',1;");
@@ -85,7 +85,7 @@ public class SqlReadRetryIntegrationTests
         await using (var connection = await new SqlConnectionFactory(db.ConnectionString).OpenAsync(default))
         {
             transient = await Assert.ThrowsAsync<SqlException>(() => connection.QueryAsync(new CommandDefinition(
-                "dbo.usp_PriceList_GetEligible", new { CustomerId = "customer-001", AsOfUtc = AsOf.UtcDateTime }, commandType: CommandType.StoredProcedure)));
+                "dbo.usp_PriceList_GetEligible", new { CustomerId = Guid.Parse("10000000-0000-4000-8000-019a6a000001"), AsOfUtc = AsOf.UtcDateTime }, commandType: CommandType.StoredProcedure)));
         }
 
         var clock = new FakeTimeProvider();
@@ -114,7 +114,7 @@ public class SqlReadRetryIntegrationTests
         await RetrySqlFaults.InstallAsync(db, "dbo.usp_PriceList_GetEligible", 100);
         await using var connection = await new SqlConnectionFactory(db.ConnectionString).OpenAsync(default);
         var transient = await Assert.ThrowsAsync<SqlException>(() => connection.QueryAsync(new CommandDefinition(
-            "dbo.usp_PriceList_GetEligible", new { CustomerId = "customer-001", AsOfUtc = AsOf.UtcDateTime }, commandType: CommandType.StoredProcedure)));
+            "dbo.usp_PriceList_GetEligible", new { CustomerId = Guid.Parse("10000000-0000-4000-8000-019a6a000001"), AsOfUtc = AsOf.UtcDateTime }, commandType: CommandType.StoredProcedure)));
         var clock = new FakeTimeProvider();
         var policy = new SqlReadRetryPolicy(clock);
         using var cancellation = new CancellationTokenSource();
@@ -147,7 +147,7 @@ public class SqlReadRetryIntegrationTests
             attempts.Add(connection);
             Assert.Equal(0, new SqlConnectionStringBuilder(connection.ConnectionString).ConnectRetryCount);
             var parameters = new DynamicParameters();
-            parameters.Add("CustomerId", "customer-001");
+            parameters.Add("CustomerId", Guid.Parse("10000000-0000-4000-8000-019a6a000001"));
             parameters.Add("AsOfUtc", AsOf.UtcDateTime, DbType.DateTime2);
             var rows = await connection.QueryAsync(new CommandDefinition("dbo.usp_PriceList_GetEligible", parameters,
                 commandType: CommandType.StoredProcedure, cancellationToken: token));

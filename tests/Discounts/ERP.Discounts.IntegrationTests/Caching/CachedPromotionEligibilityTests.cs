@@ -35,7 +35,7 @@ public class CachedPromotionEligibilityTests
         var provider = new PromotionDiscountProvider(new DummyCustomerSegmentProvider(), cached);
         var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero).AddMilliseconds(1);
         var end = start.AddMilliseconds(1);
-        var request = new PricingRequest("cache-time-test", "customer-001", 340, "EUR", []);
+        var request = new PricingRequest("cache-time-test", Guid.Parse("10000000-0000-4000-8000-019a6a000001"), 340, "EUR", []);
 
         foreach (var (time, expected) in new[] { (start.AddTicks(-1), 0), (start, 1), (end.AddTicks(-1), 1), (end, 0) })
         {
@@ -45,7 +45,7 @@ public class CachedPromotionEligibilityTests
 
         var gold = new PricingContext(request, 323, [], start);
         Assert.Equal(10m, Assert.Single(await provider.GetEligibleAsync(gold, default)).Value);
-        var silver = gold with { Request = request with { CustomerId = "customer-002" } };
+        var silver = gold with { Request = request with { CustomerId = Guid.Parse("10000000-0000-4000-8000-019a6a000002") } };
         Assert.Equal(5m, Assert.Single(await provider.GetEligibleAsync(silver, default)).Value);
         Assert.Empty(await provider.GetEligibleAsync(gold with { CurrentAmount = 199.99m }, default));
         Assert.Equal(1, repository.Calls);

@@ -13,7 +13,7 @@ public static class PricingRequestValidator
         if (string.IsNullOrWhiteSpace(request.OrderId) || request.OrderId.Length > 64) 
             errors["orderId"] = ["A nonblank ID of at most 64 characters is required."];
 
-        if (string.IsNullOrWhiteSpace(request.CustomerId) || request.CustomerId.Length > 64) 
+        if (request.CustomerId == Guid.Empty) 
             errors["customerId"] = ["A nonblank ID of at most 64 characters is required."];
 
         if (request.OriginalAmount < 0 ||

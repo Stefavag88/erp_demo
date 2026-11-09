@@ -8,14 +8,14 @@ namespace ERP.Discounts.Infrastructure.Repositories;
 
 public sealed class DapperCouponRepository(SqlConnectionFactory connections, SqlReadRetryPolicy retry) : ICouponRepository
 {
-    public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(string customerId, IReadOnlyList<string> codes, DateTimeOffset asOfUtc, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(Guid customerId, IReadOnlyList<string> codes, DateTimeOffset asOfUtc, CancellationToken cancellationToken)
         => retry.ExecuteAsync<IReadOnlyList<CouponDefinition>>(async token =>
         {
             using var table = CouponCodeTable.Create(codes);
             await using var connection = await connections.OpenAsync(token);
 
             var parameters = new DynamicParameters();
-            parameters.Add("CustomerId", customerId, DbType.String, size: 64);
+            parameters.Add("CustomerId", customerId, DbType.Guid);
             parameters.Add("AsOfUtc", asOfUtc.UtcDateTime, DbType.DateTime2);
             parameters.Add("Codes", table.AsTableValuedParameter("dbo.CouponCodeList"));
 

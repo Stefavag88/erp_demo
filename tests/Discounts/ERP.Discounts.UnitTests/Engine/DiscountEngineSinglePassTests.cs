@@ -43,7 +43,7 @@ public class DiscountEngineSinglePassTests
             new("a", "A", DiscountType.Promotion, CalculationMethod.FixedAmount, 10));
         var engine = new DiscountEngine([new Provider(discounts)], new DiscountCalculator(), TimeProvider.System);
 
-        var result = await engine.CalculateAsync(new("order", "customer", 100, "EUR", []), default);
+        var result = await engine.CalculateAsync(new("order", Guid.Parse("10000000-0000-4000-8000-019a6a000001"), 100, "EUR", []), default);
 
         Assert.Equal(1, discounts.Enumerations);
         Assert.Equal(["a", "b", "later"], result.Discounts.Select(d => d.DiscountId));
@@ -61,6 +61,6 @@ public class DiscountEngineSinglePassTests
             new DiscountCalculator(), TimeProvider.System);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            engine.CalculateAsync(new("order", "customer", 100, "EUR", []), default));
+            engine.CalculateAsync(new("order", Guid.Parse("10000000-0000-4000-8000-019a6a000001"), 100, "EUR", []), default));
     }
 }

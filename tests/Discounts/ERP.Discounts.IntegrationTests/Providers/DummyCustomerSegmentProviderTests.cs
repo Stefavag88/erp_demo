@@ -7,16 +7,16 @@ namespace ERP.Discounts.IntegrationTests.Providers;
 public class DummyCustomerSegmentProviderTests
 {
     [Theory]
-    [InlineData("customer-001", "GOLD")]
-    [InlineData("customer-002", "SILVER")]
-    [InlineData("customer-multi", "BRONZE")]
-    [InlineData("unknown", null)]
-    [InlineData("CUSTOMER-001", null)]
+    [InlineData("10000000-0000-4000-8000-019a6a000001", "GOLD")]
+    [InlineData("10000000-0000-4000-8000-019a6a000002", "SILVER")]
+    [InlineData("10000000-0000-4000-8000-019a6a000003", "BRONZE")]
+    [InlineData("10000000-0000-4000-8000-019a6a000099", null)]
+    [InlineData("10000000-0000-4000-8000-019a6a000098", null)]
     public async Task Supplies_only_fixed_demo_assignments(string customerId, string? expectedSegment)
     {
         ICustomerSegmentProvider provider = new DummyCustomerSegmentProvider();
 
-        var segment = await provider.GetSegmentAsync(customerId, default);
+        var segment = await provider.GetSegmentAsync(Guid.Parse(customerId), default);
 
         Assert.Equal(expectedSegment, segment);
     }
@@ -29,6 +29,6 @@ public class DummyCustomerSegmentProviderTests
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => provider.GetSegmentAsync("customer-001", cancellation.Token));
+            () => provider.GetSegmentAsync(Guid.Parse("10000000-0000-4000-8000-019a6a000001"), cancellation.Token));
     }
 }

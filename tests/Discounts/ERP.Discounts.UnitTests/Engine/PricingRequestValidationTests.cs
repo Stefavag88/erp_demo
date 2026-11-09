@@ -5,16 +5,16 @@ namespace ERP.Discounts.UnitTests.Engine;
 
 public class PricingRequestValidationTests
 {
-    public static PricingRequest Valid() => new("ORD-123", "customer-001", 340m, "EUR", ["WELCOME10"]);
+    public static PricingRequest Valid() => new("ORD-123", Guid.Parse("10000000-0000-4000-8000-019a6a000001"), 340m, "EUR", ["WELCOME10"]);
 
     [Fact]
     public void Normalizes_and_snapshots_codes_without_changing_opaque_ids()
     {
         string[] codes = [" welcome10 ", "WELCOME10", "other_1"];
-        var result = PricingRequestValidator.ValidateAndNormalize(Valid() with { CustomerId = " Customer ", CouponCodes = codes });
+        var result = PricingRequestValidator.ValidateAndNormalize(Valid() with { CustomerId = Guid.Parse("10000000-0000-4000-8000-019a6a000001"), CouponCodes = codes });
         codes[0] = "CHANGED";
         Assert.Equal(["WELCOME10", "OTHER_1"], result.CouponCodes);
-        Assert.Equal(" Customer ", result.CustomerId);
+        Assert.Equal(Guid.Parse("10000000-0000-4000-8000-019a6a000001"), result.CustomerId);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class PricingRequestValidationTests
     public static IEnumerable<object[]> InvalidRequests()
     {
         yield return [Valid() with { OrderId = " " }, "orderId"];
-        yield return [Valid() with { CustomerId = new string('a', 65) }, "customerId"];
+        yield return [Valid() with { CustomerId = Guid.Empty }, "customerId"];
         yield return [Valid() with { OriginalAmount = -1m }, "originalAmount"];
         yield return [Valid() with { OriginalAmount = 1.001m }, "originalAmount"];
         yield return [Valid() with { OriginalAmount = 100000000000000000m }, "originalAmount"];

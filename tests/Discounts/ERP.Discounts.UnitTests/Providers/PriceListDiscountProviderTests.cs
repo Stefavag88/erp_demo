@@ -8,7 +8,7 @@ public class PriceListDiscountProviderTests
 {
     private sealed class Repository(IReadOnlyList<PriceListDefinition> rows, PricingContext context, CancellationToken token, bool fail=false) : IPriceListRepository
     {
-        public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(string customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
+        public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
         { Assert.Equal(context.Request.CustomerId,customerId);Assert.Equal(context.AsOfUtc,asOfUtc);Assert.Equal(token,cancellationToken);if(fail) throw new IOException();return Task.FromResult(rows); }
     }
     [Theory]

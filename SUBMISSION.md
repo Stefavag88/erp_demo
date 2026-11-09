@@ -15,7 +15,7 @@ dotnet build ERP.Discounts.sln -c Release
 dotnet run --project src/Discounts/ERP.Discounts.Api -c Release --no-launch-profile --urls http://localhost:5080
 ```
 
-Send the requests in samples/pricing.http. The primary request is customer-001, EUR 340.00 and WELCOME10; it returns three ordered discounts, totalDiscount 59.30 and finalAmount 280.70. The README includes the complete response and additional examples.
+Send the requests in samples/pricing.http. The primary request is 10000000-0000-4000-8000-019a6a000001, EUR 340.00 and WELCOME10; it returns three ordered discounts, totalDiscount 59.30 and finalAmount 280.70. The README includes the complete response and additional examples.
 
 The default database is ERPDiscounts. If that name is already in use, choose a fresh name with Deploy.ps1 -DatabaseName and override the API connection string accordingly. The API performs no provisioning or result writes. Schema changes assume fresh databases; migrations are deliberately out of scope.
 

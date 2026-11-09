@@ -6,7 +6,7 @@ Content-Type: application/json
 
 {
   "orderId": "ORD-123",
-  "customerId": "customer-001",
+  "customerId": "10000000-0000-4000-8000-019a6a000001",
   "originalAmount": 340.00,
   "currency": "EUR",
   "couponCodes": ["WELCOME10"]
@@ -16,7 +16,7 @@ Content-Type: application/json
 POST {{baseUrl}}/api/pricing/calculate
 Content-Type: application/json
 
-{"orderId":"ORD-124","customerId":"customer-002","originalAmount":340.00,"currency":"EUR","couponCodes":["WELCOME10"]}
+{"orderId":"ORD-124","customerId":"10000000-0000-4000-8000-019a6a000002","originalAmount":340.00,"currency":"EUR","couponCodes":["WELCOME10"]}
 
 ### No discounts: finalAmount 340.00
 POST {{baseUrl}}/api/pricing/calculate
@@ -28,4 +28,4 @@ Content-Type: application/json
 POST {{baseUrl}}/api/pricing/calculate
 Content-Type: application/json
 
-{"orderId":"ORD-126","customerId":"customer-multi","originalAmount":100.00,"currency":"EUR","couponCodes":["WELCOME10","PRIVATE5"]}
+{"orderId":"ORD-126","customerId":"10000000-0000-4000-8000-019a6a000003","originalAmount":100.00,"currency":"EUR","couponCodes":["WELCOME10","PRIVATE5"]}

@@ -16,6 +16,16 @@ namespace ERP.Discounts.IntegrationTests.Api;
 [Trait("Category","Api")]
 public class PricingEndpointTests
 {
+    [Theory]
+    [InlineData("not-a-guid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public async Task Invalid_customer_GUID_is_400(string customerId)
+    {
+        await using var factory = new Factory();
+        using var client = factory.CreateClient();
+        using var response = await client.PostAsync("/api/pricing/calculate", new StringContent(Request.Replace("10000000-0000-4000-8000-019a6a000001", customerId), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
     private sealed class Factory(bool fail=false,string? realConnection=null) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -31,16 +41,16 @@ public class PricingEndpointTests
     }
     private sealed class DemoRepositories(bool fail) : IPriceListRepository,ICustomerSegmentProvider,IPromotionRepository,ICouponRepository
     {
-        public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(string customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
+        public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
         {
             if(fail)throw new IOException("connection password=do-not-expose");
-            return Task.FromResult<IReadOnlyList<PriceListDefinition>>(customerId=="unknown"?[]:[new(Guid.Parse("00000011-0000-0000-0000-000000000001"),"Gold Price List",CalculationMethod.Percentage,CalculationBase.CurrentAmount,5,0)]);
+            return Task.FromResult<IReadOnlyList<PriceListDefinition>>(customerId==Guid.Parse("10000000-0000-4000-8000-019a6a000099")?[]:[new(Guid.Parse("00000011-0000-0000-0000-000000000001"),"Gold Price List",CalculationMethod.Percentage,CalculationBase.CurrentAmount,5,0)]);
         }
-        public Task<string?> GetSegmentAsync(string customerId,CancellationToken cancellationToken)=>Task.FromResult<string?>(customerId=="unknown"?null:"GOLD");
+        public Task<string?> GetSegmentAsync(Guid customerId,CancellationToken cancellationToken)=>Task.FromResult<string?>(customerId==Guid.Parse("10000000-0000-4000-8000-019a6a000099")?null:"GOLD");
         public Task<IReadOnlyList<PromotionDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<PromotionDefinition>>([new(Guid.Parse("00000021-0000-0000-0000-000000000001"),"Segment Promotion",200,0,true,null,null,[new("GOLD",CalculationMethod.Percentage,10)])]);
-        public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(string customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<CouponDefinition>>(codes.Contains("WELCOME10")?[new(Guid.Parse("00000031-0000-0000-0000-000000000001"),"WELCOME10","WELCOME10",CalculationMethod.FixedAmount,CalculationBase.CurrentAmount,10,0)]:[]);
+        public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(Guid customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<CouponDefinition>>(codes.Contains("WELCOME10")?[new(Guid.Parse("00000031-0000-0000-0000-000000000001"),"WELCOME10","WELCOME10",CalculationMethod.FixedAmount,CalculationBase.CurrentAmount,10,0)]:[]);
     }
-    private const string Request = """{"orderId":"ORD-123","customerId":"customer-001","originalAmount":340.00,"currency":"EUR","couponCodes":["WELCOME10"]}""";
+    private const string Request = """{"orderId":"ORD-123","customerId":"10000000-0000-4000-8000-019a6a000001","originalAmount":340.00,"currency":"EUR","couponCodes":["WELCOME10"]}""";
     internal static async Task AssertDemoAsync(HttpClient client)
     {
         using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(Request,Encoding.UTF8,"application/json"));
@@ -60,7 +70,7 @@ public class PricingEndpointTests
     public async Task Empty_eligibility_is_200()
     {
         await using var factory=new Factory();using var client=factory.CreateClient();
-        using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(Request.Replace("customer-001","unknown").Replace("WELCOME10","UNKNOWN"),Encoding.UTF8,"application/json"));
+        using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(Request.Replace("10000000-0000-4000-8000-019a6a000001","10000000-0000-4000-8000-019a6a000099").Replace("WELCOME10","UNKNOWN"),Encoding.UTF8,"application/json"));
         Assert.Equal(HttpStatusCode.OK,response.StatusCode);var json=await response.Content.ReadFromJsonAsync<JsonElement>();Assert.Equal(340m,json.GetProperty("finalAmount").GetDecimal());Assert.Equal(0,json.GetProperty("discounts").GetArrayLength());
     }
     [Theory]
@@ -106,7 +116,7 @@ public class PricingEndpointTests
     {
         var expected=decimal.Parse(expectedText,System.Globalization.CultureInfo.InvariantCulture);
         await using var factory=new Factory();using var client=factory.CreateClient();
-        var body=Request.Replace("340.00",amount).Replace("customer-001","unknown").Replace("WELCOME10","UNKNOWN");
+        var body=Request.Replace("340.00",amount).Replace("10000000-0000-4000-8000-019a6a000001","10000000-0000-4000-8000-019a6a000099").Replace("WELCOME10","UNKNOWN");
         using var response=await client.PostAsync("/api/pricing/calculate",new StringContent(body,Encoding.UTF8,"application/json"));
         Assert.Equal(HttpStatusCode.OK,response.StatusCode);
         var json=await response.Content.ReadFromJsonAsync<JsonElement>();Assert.Equal(expected,json.GetProperty("originalAmount").GetDecimal());Assert.Equal(expected,json.GetProperty("finalAmount").GetDecimal());

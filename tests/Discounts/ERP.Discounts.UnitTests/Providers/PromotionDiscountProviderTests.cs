@@ -7,7 +7,7 @@ namespace ERP.Discounts.UnitTests.Providers;
 public class PromotionDiscountProviderTests
 {
     internal sealed class Segments(string? segment="GOLD", bool fail=false) : ICustomerSegmentProvider
-    { public Task<string?> GetSegmentAsync(string customerId,CancellationToken cancellationToken) {Assert.Equal("customer-001",customerId);if(fail)throw new IOException();return Task.FromResult(segment);} }
+    { public Task<string?> GetSegmentAsync(Guid customerId,CancellationToken cancellationToken) {Assert.Equal(Guid.Parse("10000000-0000-4000-8000-019a6a000001"),customerId);if(fail)throw new IOException();return Task.FromResult(segment);} }
     internal sealed class Promotions(params PromotionDefinition[] rows) : IPromotionRepository
     { public Task<IReadOnlyList<PromotionDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken){return Task.FromResult<IReadOnlyList<PromotionDefinition>>(rows);} }
     internal static PromotionDefinition Definition() => new(Guid.NewGuid(),"Segment promotion",200,0,true,null,null,[new("GOLD",CalculationMethod.Percentage,10),new("SILVER",CalculationMethod.Percentage,5)]);

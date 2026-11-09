@@ -11,9 +11,9 @@ public class CouponDiscountProviderTests
 {
     internal sealed class Coupons(int count=1,bool fail=false) : ICouponRepository
     {
-        public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(string customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
+        public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(Guid customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
         {
-            Assert.Equal("customer-001",customerId);Assert.Equal(["WELCOME10"],codes);Assert.Equal(DateTimeOffset.UnixEpoch,asOfUtc);
+            Assert.Equal(Guid.Parse("10000000-0000-4000-8000-019a6a000001"),customerId);Assert.Equal(["WELCOME10"],codes);Assert.Equal(DateTimeOffset.UnixEpoch,asOfUtc);
             if(fail)throw new IOException();
             return Task.FromResult<IReadOnlyList<CouponDefinition>>(Enumerable.Range(0,count).Select(i=>new CouponDefinition(Guid.NewGuid(),"WELCOME10","Coupon",CalculationMethod.FixedAmount,CalculationBase.CurrentAmount,10,i)).ToArray());
         }
@@ -35,7 +35,7 @@ public class CouponDiscountProviderTests
         await Assert.ThrowsAsync<IOException>(()=>provider.GetEligibleAsync(context,default));
     }
     private sealed class Lists : IPriceListRepository
-    {public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(string customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<PriceListDefinition>>([new(Guid.NewGuid(),"Gold",CalculationMethod.Percentage,CalculationBase.CurrentAmount,5,0)]);}
+    {public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<PriceListDefinition>>([new(Guid.NewGuid(),"Gold",CalculationMethod.Percentage,CalculationBase.CurrentAmount,5,0)]);}
     private sealed class Clock : TimeProvider { public override DateTimeOffset GetUtcNow()=>DateTimeOffset.UnixEpoch; }
     [Fact]
     public async Task Real_providers_compose_the_demo_without_SQL()

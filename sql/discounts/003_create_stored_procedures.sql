@@ -1,7 +1,7 @@
 USE [$(DatabaseName)];
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_PriceList_GetEligible
-    @CustomerId nvarchar(64), @AsOfUtc datetime2(7)
+    @CustomerId uniqueidentifier, @AsOfUtc datetime2(7)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -30,7 +30,7 @@ BEGIN
 END;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Coupon_GetEligible
-    @CustomerId nvarchar(64), @Codes dbo.CouponCodeList READONLY, @AsOfUtc datetime2(7)
+    @CustomerId uniqueidentifier, @Codes dbo.CouponCodeList READONLY, @AsOfUtc datetime2(7)
 AS
 BEGIN
     SET NOCOUNT ON;

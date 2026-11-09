@@ -14,7 +14,7 @@ CREATE TABLE dbo.PriceLists (
     CONSTRAINT CK_PriceLists_Window CHECK (StartsAtUtc IS NULL OR EndsAtUtc IS NULL OR StartsAtUtc < EndsAtUtc)
 );
 CREATE TABLE dbo.CustomerPriceLists (
-    CustomerId nvarchar(64) NOT NULL,
+    CustomerId uniqueidentifier NOT NULL,
     PriceListId uniqueidentifier NOT NULL CONSTRAINT FK_CustomerPriceLists_List REFERENCES dbo.PriceLists(Id),
     CONSTRAINT PK_CustomerPriceLists PRIMARY KEY (CustomerId, PriceListId)
 );
@@ -74,7 +74,7 @@ CREATE TABLE dbo.Coupons (
 );
 CREATE TABLE dbo.CouponCustomerEligibility (
     CouponId uniqueidentifier NOT NULL CONSTRAINT FK_CouponCustomerEligibility_Coupon REFERENCES dbo.Coupons(Id),
-    CustomerId nvarchar(64) NOT NULL,
+    CustomerId uniqueidentifier NOT NULL,
     CONSTRAINT PK_CouponCustomerEligibility PRIMARY KEY(CouponId,CustomerId)
 );
 GO

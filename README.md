@@ -58,7 +58,7 @@ In SSMS enable **Query > SQLCMD Mode** and supply `:setvar DatabaseName ERPDisco
 Use [samples/pricing.http](samples/pricing.http) or:
 
 ```powershell
-$body = @{ orderId='ORD-123'; customerId='customer-001'; originalAmount=340.00; currency='EUR'; couponCodes=@('WELCOME10') } | ConvertTo-Json
+$body = @{ orderId='ORD-123'; customerId='10000000-0000-4000-8000-019a6a000001'; originalAmount=340.00; currency='EUR'; couponCodes=@('WELCOME10') } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri http://localhost:5080/api/pricing/calculate -ContentType application/json -Body $body | ConvertTo-Json -Depth 8
 ```
 
@@ -115,7 +115,7 @@ The seeded response is:
 }
 ```
 
-Numeric trailing zeros can vary in JSON without changing monetary values. customer-002 has SILVER (5% promotion): the same amount/code yields 296.85. customer-multi at 100 with WELCOME10 and PRIVATE5 yields four discounts and 75.25. An unknown customer with no coupon codes receives an empty breakdown and the original price. WELCOME10 itself is unrestricted, so an unknown customer explicitly requesting it can still receive that coupon.
+Numeric trailing zeros can vary in JSON without changing monetary values. 10000000-0000-4000-8000-019a6a000002 has SILVER (5% promotion): the same amount/code yields 296.85. 10000000-0000-4000-8000-019a6a000003 at 100 with WELCOME10 and PRIVATE5 yields four discounts and 75.25. An unknown customer with no coupon codes receives an empty breakdown and the original price. WELCOME10 itself is unrestricted, so an unknown customer explicitly requesting it can still receive that coupon.
 
 Invalid requests return 400; application validation supplies field-specific ProblemDetails errors. Malformed JSON/missing required constructor fields also return 400. Well-formed unknown coupons simply do not match. Infrastructure/malformed-provider failures return a generic 500 problem response; they never become an unchanged successful price. Cancellation propagates to repository operations.
 
@@ -153,7 +153,7 @@ SQL tests exercise CHECK/foreign-key constraints, TVP/allow-lists, repeatable se
 - Unknown/duplicate provider categories and malformed resolved discounts fail clearly. Missing categories are allowed by the reusable engine; the API registers all three. Duplicate discount IDs within a category fail; identities across different categories are independent. No per-request state is stored on the engine.
 - There is no central Discounts table. PromotionSegmentRates owns the complete instruction: segment, CalculationMethod, Value and CalculationBase. A promotion's segments may use different calculation bases. Since method and base now live on the same row, a normal CHECK requires CurrentAmount for fixed amounts; no trigger is needed. Promotions retains shared eligibility, validity and priority. GUID identifiers and the (PromotionId,SegmentCode) key are unchanged.
 
-Customer segmentation is external information behind Application's ICustomerSegmentProvider. The API registers an Infrastructure DummyCustomerSegmentProvider: customer-001 maps to GOLD, customer-002 to SILVER, customer-multi to BRONZE, and other IDs return no segment. These fixed demo assignments are isolated in that adapter; the application contains no customer classification logic and performs no segment database lookup. PromotionSegmentRates remains in SQL because promotion rates are discount rules. Replacing the dummy with another source requires implementing the same interface and changing DI registration; no external client is implemented here.
+Customer segmentation is external information behind Application's ICustomerSegmentProvider. The API registers an Infrastructure DummyCustomerSegmentProvider: 10000000-0000-4000-8000-019a6a000001 maps to GOLD, 10000000-0000-4000-8000-019a6a000002 to SILVER, 10000000-0000-4000-8000-019a6a000003 to BRONZE, and other IDs return no segment. These fixed demo assignments are isolated in that adapter; the application contains no customer classification logic and performs no segment database lookup. PromotionSegmentRates remains in SQL because promotion rates are discount rules. Replacing the dummy with another source requires implementing the same interface and changing DI registration; no external client is implemented here.
 
 Local price-list assignments remain discount-domain facts with no external Customers FK. OrderId is correlation only. This assignment has no result persistence, coupon reservation/redemption, line allocations, tax/shipping, auth, external calls, message bus or background workers. Caching is limited to the promotion catalog described below. Production requirements would need a separate design rather than infrastructure added speculatively here.
 
