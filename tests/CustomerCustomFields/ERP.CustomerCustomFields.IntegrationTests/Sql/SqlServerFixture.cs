@@ -31,7 +31,18 @@ public sealed class SqlServerFixture : IAsyncDisposable
         var file=Directory.GetFiles(Path.Combine(root.FullName,"sql","customer-custom-fields"),$"{number:D3}_*.sql").Single();
         await RunAsync(["-d","master","-v","DatabaseName="+DatabaseName,"-i",file]);
     }
-    public Task<string> SqlAsync(string query) => RunAsync(["-d",DatabaseName,"-Q",query]);
+    public async Task<string> SqlAsync(string query)
+    {
+        try
+        {
+            await using var connection = new SqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            using var command = new SqlCommand(query, connection) { CommandTimeout = 45 };
+            await command.ExecuteNonQueryAsync();
+            return "";
+        }
+        catch (SqlException ex) { throw new InvalidOperationException(ex.Message, ex); }
+    }
     private async Task<string> RunAsync(string[] arguments)
     {
         var start=new ProcessStartInfo("sqlcmd"){RedirectStandardOutput=true,RedirectStandardError=true,UseShellExecute=false,CreateNoWindow=true};
