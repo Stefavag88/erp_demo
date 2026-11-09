@@ -1,6 +1,6 @@
 # ERP assignment: consistent discount and customer custom-field modules
 
-Status: design updated with the user's approved module boundaries and application-generated SQL Server-ordered customer GUIDs. No product implementation is included in this document change.
+Status: design updated with the user's approved module boundaries and application-generated regular customer GUIDs. No product implementation is included in this document change.
 
 ## Intent and authority
 
@@ -12,7 +12,7 @@ The user approved these directions on 2026-11-09:
 - Preserve separate discount projects and use the same layered project structure for customer custom fields, with folders per module.
 - SQL Server 2022 everywhere.
 - Numeric representation for every enum stored in a database column.
-- Customer IDs are application-generated SQL Server-ordered sequential GUIDs: Guid in C#, uniqueidentifier in SQL, strings in JSON. This supersedes the earlier numeric customer-ID decision. Do not use NEWSEQUENTIALID or standard UUID v7 generation for these keys.
+- Customer IDs are application-generated regular GUIDs: Guid in C#, uniqueidentifier in SQL, strings in JSON. This supersedes the earlier numeric customer-ID decision. Use Guid.NewGuid(); no external GUID-generation library or custom COMB implementation.
 - Custom-field segments are demo data and must not drive discount eligibility.
 
 The supplied [customer custom-fields specification](2026-11-09-customer-custom-fields-reference.md) is preserved unchanged as reference material. Its executable behavior and acceptance cases are the baseline for part two, subject to this document's explicit overrides. Its standalone solution layout, string database FieldType and integer customer IDs are superseded. Statements inside that reference directing an agent to implement are reference text, not independent authorization.
@@ -63,7 +63,7 @@ Preserve discount project names and namespaces; update solution/project referenc
 
 Each executable gets its own Program entry point and WebApplicationFactory target, so tests do not confuse the two generated Program types. Builder decides whether to use an explicit namespaced partial Program or an explicit namespaced host marker, using the same convention for both modules.
 
-## Discount behavior and sequential GUID customer IDs
+## Discount behavior and GUID customer IDs
 
 The folder reorganization preserves existing discount behavior: category ordering, one sampled evaluation instant, calculation and validation rules, explainable response, promotion-only 60-second read-only cache, cancellation and bounded SQL read retries. No result persistence or new discount feature is introduced.
 
@@ -75,9 +75,7 @@ The discount database does not gain an ERP customer master or cross-database FK.
 
 ### Application ID generation
 
-Generate new customer IDs in C# through Application's ICustomerIdGenerator.NewId(): Guid, implemented by Infrastructure's SqlServerCustomerIdGenerator. Use a SQL Server-oriented COMB implementation such as RT.Comb's SqlCombProvider with its UnixDateTimeStrategy, wrapped behind this focused interface. Pin the selected standalone package version and audit it during implementation. Do not add EF or a messaging framework solely for ID generation, and do not invent an unreviewed byte-shuffling algorithm.
-
-The intended property is insertion locality under SQL Server's uniqueidentifier comparison order, not strict global monotonicity or arrival order. Values generated within one clock tick need not be ordered, clocks can move and concurrent writes can arrive out of generation order. Never use these IDs as timestamps or history ordering. Verify SQL order with SqlGuid and a real SQL Server ORDER BY, controlled distinct timestamps for ordering tests, and parallel generation for uniqueness. Do not assert that random within-tick values are strictly increasing or that all inserts avoid page splits. No NEWSEQUENTIALID, NEWID default or standard Guid.CreateVersion7 is used for customer creation.
+Generate new customer IDs in C# through Application's ICustomerIdGenerator.NewId(): Guid, implemented by Infrastructure's CustomerIdGenerator using Guid.NewGuid(). The user explicitly rejected RT.Comb and every external library for ID generation and chose regular GUIDs rather than custom generation code. No external generator, COMB, UUID v7, NEWID default or NEWSEQUENTIALID is used. The SQL type stays UNIQUEIDENTIFIER. Random GUID clustered inserts are accepted; sequential insertion locality is no longer a requirement. Keep history ordered by ValueVersion, never by customer GUID.
 
 As a small demo support operation, expose authenticated POST /api/customers with a name-only body. The Application customer service allocates the ID, then calls a Dapper-backed dbo.Customer_Create procedure with that ID and returns 201 with the GUID. This also demonstrates that newly created customers see all existing definitions. Existing fixed SQL seed IDs are the documented exception for repeatability.
 
@@ -126,7 +124,7 @@ Run existing discount fast tests before structural work and preserve behavior th
 Required verification:
 
 - Discount calculator/engine/provider/cache/retry coverage survives the folder move; all existing intentions preserved, GUID tests replace obsolete symbolic-ID expectations. Validate GUID round-trip, empty/missing/null/malformed IDs, JSON numeric-ID rejection and named JSON enum behavior.
-- Both fresh databases provision on SQL Server 2022 at compatibility 160; no triggers, migrations or cross-module DB references; numeric persisted enum columns and UNIQUEIDENTIFIER customer IDs are verified. Test application-generated customer IDs, clustered Customer key and SQL ordering/locality without claiming strict concurrent insertion order.
+- Both fresh databases provision on SQL Server 2022 at compatibility 160; no triggers, migrations or cross-module DB references; numeric persisted enum columns and UNIQUEIDENTIFIER customer IDs are verified. Test application-generated customer IDs and round-trips; do not claim sequential ordering.
 - All customer-fields acceptance cases in the reference specification: global visibility without prepopulation; per-customer isolation; strict selection validation and canonicalization; initial/consecutive/clear/no-op history; database timestamps/actors; inactive metadata preservation; temporal point-in-time reconstruction; first-insert and existing-row concurrency; stale no-op conflict; authentication and Problem Details. Add exact-text comparison, absent versus null expectedVersion, enum mapping and deactivation/write coordination cases.
 - Real-SQL tests and runtime smoke tests use SQL Server 2022, not SQLite/in-memory substitutes. Verify discounts still return 280.70 and demonstrate both customer profiles and history through the new executable.
 - Clean Release build, dependency vulnerability audit, clean-extraction setup rehearsal and source-only submission archive containing both parts. Do not claim SQL tests passed if the compatible engine is unavailable; report the concrete environment issue.
@@ -143,4 +141,4 @@ Builder may choose local helper names, test data, SQL error-number allocation, e
 
 - [ISJSON](https://learn.microsoft.com/en-us/sql/t-sql/functions/isjson-transact-sql?view=sql-server-ver16): ARRAY type constraint was introduced in SQL Server 2022; it does not validate option ownership or membership types.
 - [Temporal overview](https://learn.microsoft.com/en-us/sql/relational-databases/tables/temporal/overview?view=sql-server-ver16): periods use transaction-begin time; even an unchanged UPDATE creates a version; zero-duration versions require special consideration. The app deliberately uses one meaningful write per transaction.
-- [RT.Comb implementation documentation](https://github.com/richardtallent/RT.Comb): standalone SQL Server-specific COMB layout and timestamp strategy; the documented precision limitations apply to any ordering claims.
+
