@@ -15,6 +15,7 @@ public static class CustomFieldValidator
   if(command.CustomerId==Guid.Empty||command.FieldId<=0||command.ActorUserId<=0||command.ExpectedVersion is <=0) throw new CustomFieldException("Use valid customer, field, actor and expected version identifiers.");
   if(command.TextValue?.Length>2000) throw new CustomFieldException("Text is limited to 2000 characters.");
   if(command.SelectedOptionIds is {} ids&&(ids.Any(id=>id<=0)||ids.Distinct().Count()!=ids.Count)) throw new CustomFieldException("Selection IDs must be positive and unique.");
-  return command with { TextValue=command.TextValue==""?null:command.TextValue };
+  // Only SQL knows the authoritative field type; preserve raw text until that check.
+  return command;
  }
 }

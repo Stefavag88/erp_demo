@@ -10,5 +10,5 @@ public class CustomFieldValidatorTests
  [Fact] public void Empty_customer_is_rejected()=>Assert.Throws<CustomFieldException>(()=>CustomFieldValidator.Value(new(Guid.Empty,1,"value",null,null,1)));
  [Fact] public void Overlong_text_is_rejected()=>Assert.Throws<CustomFieldException>(()=>CustomFieldValidator.Value(new(Guid.NewGuid(),1,new string('x',2001),null,null,1)));
  [Fact] public void Duplicated_selections_are_rejected()=>Assert.Throws<CustomFieldException>(()=>CustomFieldValidator.Value(new(Guid.NewGuid(),1,null,[1,1],null,1)));
- [Fact] public void Empty_text_is_unset_but_nonempty_whitespace_is_preserved(){Assert.Null(CustomFieldValidator.Value(new(Guid.NewGuid(),1,"",null,null,1)).TextValue);Assert.Equal("  ",CustomFieldValidator.Value(new(Guid.NewGuid(),1,"  ",null,null,1)).TextValue);}
+ [Fact] public void Nonempty_whitespace_is_preserved(){Assert.Equal("  ",CustomFieldValidator.Value(new(Guid.NewGuid(),1,"  ",null,null,1)).TextValue);}
 }
