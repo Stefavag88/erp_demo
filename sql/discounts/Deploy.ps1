@@ -1,5 +1,5 @@
 param(
-    [string]$Server = 'localhost,1433',
+    [string]$Server = '127.0.0.1,1433',
     [string]$UserName,
     [ValidatePattern('^[A-Za-z0-9_]{1,128}$')][string]$DatabaseName = 'ERPDiscounts',
     [switch]$SeedOnly

@@ -1,48 +1,69 @@
-# Submission guide
+# ERP assignment submission
 
-This archive contains the complete .NET 10 discount subsystem source, unit/integration tests, SQL provisioning/seed scripts, HTTP samples, README and design decisions. Build output, package caches, IDE files and Git internals are excluded.
+The source archive contains both independent .NET10 modules, unit/integration tests, fresh SQL Server2022 scripts, HTTP samples, the custom-fields ER diagram and the demo UI. It excludes secrets, Git metadata, caches and build output.
 
-## Run the demonstration
+## Prerequisites
 
-Prerequisites: .NET 10 SDK, SQL Server and sqlcmd. The supplied development connection uses SQL Server 2022 and Windows authentication; other SQL Server connections can be supplied through ConnectionStrings__Discounts.
+.NET10 SDK, SQL Server2022 (16.x) and `sqlcmd` on PATH. Use a native 2022 instance with Windows authentication or the supplied Docker Compose service. SQL2019 LocalDB is not supported. Both databases use compatibility160.
 
-From the extracted project directory, using a fresh database:
+## Docker setup (PowerShell)
+
+Set a strong **local** password in your shell; do not commit it. Alternatively copy `.env.example` to `.env`, replace its placeholder and read that same value into the environment. `.env` is ignored.
 
 ```powershell
+$env:MSSQL_SA_PASSWORD = '<choose-a-strong-local-password>'
+docker compose up -d sqlserver
+# Wait for SQL Server to accept connections, then:
+$env:SQLCMDPASSWORD = $env:MSSQL_SA_PASSWORD
+.\sql\discounts\Deploy.ps1 -UserName sa
+.\sql\customer-custom-fields\Deploy.ps1 -UserName sa
+$env:ConnectionStrings__Discounts = "Server=127.0.0.1,1433;Database=ERPDiscounts;User ID=sa;Password=$env:MSSQL_SA_PASSWORD;TrustServerCertificate=true;"
+$env:ConnectionStrings__CustomerCustomFields = "Server=127.0.0.1,1433;Database=ERPCustomerCustomFields;User ID=sa;Password=$env:MSSQL_SA_PASSWORD;TrustServerCertificate=true;"
 dotnet restore ERP.Discounts.sln
 dotnet build ERP.Discounts.sln -c Release
-.\sql\discounts\Deploy.ps1
-dotnet run --project src/Discounts/ERP.Discounts.Api -c Release --no-launch-profile --urls http://localhost:5080
 ```
 
-Send the requests in samples/pricing.http. The primary request is 10000000-0000-4000-8000-019a6a000001, EUR 340.00 and WELCOME10; it returns three ordered discounts, totalDiscount 59.30 and finalAmount 280.70. The README includes the complete response and additional examples.
+For a native instance, omit `-UserName` to use Windows authentication and set `-Server`/connection strings to your SQL Server2022 endpoint. Script passwords are read from SQLCMDPASSWORD, not process arguments. TrustServerCertificate and sqlcmd `-C` are local-demo settings; remote deployments should validate their server certificate.
 
-The default database is ERPDiscounts. If that name is already in use, choose a fresh name with Deploy.ps1 -DatabaseName and override the API connection string accordingly. The API performs no provisioning or result writes. Schema changes assume fresh databases; migrations are deliberately out of scope.
+Schema scripts assume fresh databases. If either default name is already in use, supply a fresh `-DatabaseName` and matching connection string. No migration, automatic upgrade, database drop or API provisioning is performed. `-SeedOnly` reruns seed data; never treat a full deployment as a schema migration.
+
+## Start each module
+
+Run these in separate terminals with the connection-string environment variables above available in each:
+
+```powershell
+# Part one
+ dotnet run --project src/Discounts/ERP.Discounts.Api -c Release --no-launch-profile --urls http://localhost:5080
+# Part two (Development-only fake demo identity, seeded actor1)
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
+dotnet run --project src/CustomerCustomFields/ERP.CustomerCustomFields.Api -c Release --no-launch-profile --urls http://localhost:5081
+```
+
+Open http://localhost:5081 for the interactive customer-fields page. The provided launch profile also uses Development and port5081 if launched without `--no-launch-profile`. Outside Development, no fake identity is supplied and API calls receive401 until ERP authentication is integrated.
+
+Use [pricing samples](samples/pricing.http) and [custom-fields samples](samples/customer-custom-fields.http). The discount request with customer10000000-0000-4000-8000-019a6a000001, EUR340 and WELCOME10 returns finalAmount280.70, totalDiscount59.30 and three discounts.
 
 ## Verify
 
 ```powershell
-dotnet test tests/Discounts/ERP.Discounts.UnitTests -c Release
-dotnet test tests/Discounts/ERP.Discounts.IntegrationTests -c Release --filter 'Category!=SqlServer'
-$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=localhost,1433;Integrated Security=true;TrustServerCertificate=true'
+# Fast tests; SQL cases skip explicitly without opt-in
+Remove-Item Env:ERP_DISCOUNTS_TEST_CONNECTION -ErrorAction SilentlyContinue
+Remove-Item Env:ERP_CUSTOM_FIELDS_TEST_CONNECTION -ErrorAction SilentlyContinue
 dotnet test ERP.Discounts.sln -c Release
+# All SQL tests require rights to create/drop their own isolated databases
+$testConnection = "Server=127.0.0.1,1433;User ID=sa;Password=$env:MSSQL_SA_PASSWORD;TrustServerCertificate=true;"
+$env:ERP_DISCOUNTS_TEST_CONNECTION = $testConnection
+$env:ERP_CUSTOM_FIELDS_TEST_CONNECTION = $testConnection
+dotnet test ERP.Discounts.sln -c Release
+dotnet list ERP.Discounts.sln package --vulnerable --include-transitive
 ```
 
-SQL tests provision isolated generated databases and remove only their own database. They require sqlcmd and database-creation rights. Without SQL opt-in, SQL tests explicitly skip. Functional and dependency-scan evidence is recorded in docs/verification.md.
+Configured SQL tests require engine16; a wrong version fails clearly. Fixtures create unique test databases and clean only their own names. `sqlcmd` is required for GO-batched provisioning. In-memory/SQLite tests do not substitute for temporal/SQL acceptance tests.
 
-## Agreed implementation scope
+## Agreed scope
 
-The initial specification is preserved under docs/superpowers/specs as a historical reference. The implemented scope includes the following changes approved during development; details are under docs/decisions:
+Each module retains separate Domain/Application/Infrastructure/Api projects and its own database. All runtime data access uses stored procedures with Dapper. SQL enum columns are numeric; customer IDs are regular application-generated GUIDs with no external generator, NEWSEQUENTIALID or UUIDv7 requirement. Random GUID clustering is accepted. No triggers, EF or migrations are used.
 
-- Customer segments come from a replaceable interface and dummy provider; discount rates remain database-owned.
-- SQL calculation enums use documented TINYINT codes; the API returns enum names.
-- CalculationBase belongs to each promotion segment rate; local CHECK constraints replace triggers.
-- Promotion definitions alone are cached in memory for 60 seconds; eligibility is evaluated for each request.
-- Database reads use bounded Polly retries with cancellation and a cooperative total budget.
-- No ERP Orders access, result persistence, coupon redemption, EF, message bus or distributed cache is added.
+Customer custom fields provide global definitions/options, per-customer values, soft activation, atomic whole-selection changes, explicit version conflicts and temporal old/new history with actor and UTC operation time. [The ER diagram and decisions](docs/customer-custom-fields/design.md) explain JSON selection tradeoffs and temporal timestamp limitations. The original supplied specifications are preserved as historical references under docs/superpowers/specs; approved overrides and implementation plans are alongside them.
 
-The solution demonstrates an assignment-sized capability. The README documents cache staleness, independent database reads, the local-demo certificate setting and future extensions.
-
-## SQL Server 2022 environment
-
-Use a native SQL Server 2022 instance with Windows authentication, or set MSSQL_SA_PASSWORD in your shell/local ignored .env and run `docker compose up -d sqlserver`. For Docker, set SQLCMDPASSWORD to that password and deploy with `./sql/discounts/Deploy.ps1 -UserName sa`. Override ConnectionStrings__Discounts and ERP_DISCOUNTS_TEST_CONNECTION with SQL-auth connection strings from your local environment. Never commit passwords. Both modules target engine16 and compatibility160; historical LocalDB2019 evidence does not verify the new target.
+Discounts retain an external dummy segment provider, a60-second promotion-definition cache and bounded SQL read retries. Custom-field demo segments do not feed discounts. No customer-field caching or automatic write retries are added. The two modules do not require messaging, distributed infrastructure or cloud services.

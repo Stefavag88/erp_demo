@@ -1,4 +1,15 @@
-# ERP discount subsystem
+# ERP assignment modules
+
+This solution contains two independent modules with separate Domain, Application, Infrastructure and Api projects under `src/Discounts` and `src/CustomerCustomFields`:
+
+- **Discounts:** ordered pricing calculation, Dapper reads, promotion cache and bounded read retries.
+- **Customer custom fields:** global text/multi-select definitions, customer-specific values, optimistic concurrency, temporal change history and a functional demo page.
+
+Both target SQL Server 2022 (16.x), compatibility160, using separate databases. Customer IDs are regular C# `Guid.NewGuid()` values, SQL `uniqueidentifier` and JSON strings. No external ID generator is used. Persisted enums are numeric. The custom-field demonstration is independent of discount eligibility.
+
+Start with [SUBMISSION.md](SUBMISSION.md) for combined setup, [the custom-fields guide](docs/customer-custom-fields/README.md) for the second API and [its ER diagram](docs/customer-custom-fields/design.md). Discount-specific behavior and details follow below.
+
+## Discount module
 
 A .NET 10 technical assignment: calculate discounts for a single EUR order amount using a service-owned SQL Server database. The API returns an explainable breakdown and does not save results or redeem coupons.
 
@@ -19,7 +30,7 @@ docker compose up -d sqlserver
 dotnet run --project src/Discounts/ERP.Discounts.Api --no-launch-profile --urls http://localhost:5080
 ```
 
-appsettings.json provides a local default under ConnectionStrings:Discounts: `Server=localhost,1433;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;`. It uses the current Windows identity and contains no password. Use SQL Server 2022 (16.x) at compatibility 160. Run the SQL scripts first to create and seed that database; the API does not create it automatically. The key is Discounts because Program.cs reads GetConnectionString("Discounts"), rather than DefaultConnection.
+appsettings.json provides a local default under ConnectionStrings:Discounts: `Server=127.0.0.1,1433;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;`. It uses the current Windows identity and contains no password. Use SQL Server 2022 (16.x) at compatibility 160. Run the SQL scripts first to create and seed that database; the API does not create it automatically. The key is Discounts because Program.cs reads GetConnectionString("Discounts"), rather than DefaultConnection.
 
 For another server/database, override it with `$env:ConnectionStrings__Discounts = 'your connection string'` or .NET user secrets. TrustServerCertificate and the script's sqlcmd -C flag are local-demo conveniences. For a remote instance configure a validated server certificate. Keep actual passwords out of appsettings and Git. The API requires a nonblank ConnectionStrings:Discounts value at startup and exposes one pricing endpoint.
 
@@ -36,11 +47,11 @@ Deploy.ps1 defaults to database ERPDiscounts and Windows integrated authenticati
 To run manually:
 
 ```powershell
-sqlcmd -S 'localhost,1433' -E -C -b -v DatabaseName=ERPDiscounts -i sql/discounts/000_create_database.sql
+sqlcmd -S '127.0.0.1,1433' -E -C -b -v DatabaseName=ERPDiscounts -i sql/discounts/000_create_database.sql
 # Repeat this command for 001, 002, 003 and 004 in order.
 ```
 
-Schema changes assume a fresh database. Provision the current schema with scripts 000–004; no upgrade or migration workflow is provided. Use a new database name when trying a changed schema, for example `./sql/Deploy.ps1 -DatabaseName ERPDiscountsDemo2`, and point the API connection string at it.
+Schema changes assume a fresh database. Provision the current schema with scripts 000–004; no upgrade or migration workflow is provided. Use a new database name when trying a changed schema, for example `./sql/discounts/Deploy.ps1 -DatabaseName ERPDiscountsDemo2`, and point the API connection string at it.
 
 Calculation enums are stored as nonnullable `TINYINT` codes in PriceListDiscounts, PromotionSegmentRates and Coupons:
 
@@ -131,7 +142,7 @@ dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category!=S
 Run all SQL Server tests (including seeded HTTP) explicitly:
 
 ```powershell
-$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=localhost,1433;Integrated Security=true;TrustServerCertificate=true'
+$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=127.0.0.1,1433;Integrated Security=true;TrustServerCertificate=true'
 dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category=SqlServer'
 # Or run every unit/mapping/API/SQL test:
 dotnet test ERP.Discounts.sln
@@ -149,7 +160,7 @@ SQL tests exercise CHECK/foreign-key constraints, TVP/allow-lists, repeatable se
 - One injected TimeProvider sample supplies the price-list/coupon temporal queries and the C# promotion validity checks. Stored windows are nullable, UTC and half-open. Explicit DateTime2 parameters preserve query boundary instants; DATETIME2 columns store milliseconds. The promotion catalog query is independent of evaluation time. A common time does not provide a transactional database snapshot across provider reads, so concurrent administrative edits may affect different categories differently.
 - Promotion resolution combines the segment supplied by ICustomerSegmentProvider with cached definitions/rates from the discount database. The same promotion resolves GOLD=10% and SILVER=5%; minimum 200 uses the stage-entry remaining amount. The repository uses two result sets selected coherently in the procedure. The provider evaluates active flags, time windows, segment and minimum amount on every request. Stored procedures do not calculate prices or order the cross-category pipeline.
 - The calculator uses decimal, rounds each requested deduction to cents AwayFromZero and caps it at the remaining amount. A percentage can use original or current amount independently of execution order. Original 100, fixed 80, then 50% of original deducts only 20 and ends at zero. Fixed discounts report CurrentAmount with null calculationBaseAmount. Zero deductions remain in the breakdown.
-- Nonblank opaque IDs are preserved, limited to 64 characters. Original money must be nonnegative, numerically two-decimal EUR and fit DECIMAL(19,2), max 99999999999999999.99. The API validates the exact JSON numeric token before decimal conversion to prevent silent input rounding; equivalent trailing zeros and exponent notation remain accepted. Coupon codes trim, uppercase invariantly, deduplicate ordinally and allow 1–64 ASCII letters/digits/underscores/hyphens starting with a letter/digit. Null lists/elements fail; empty lists work. Request/history/result collections are defensive snapshots.
+- Order IDs remain nonblank strings limited to 64 characters. Customer IDs must be nonempty GUIDs; symbolic strings and numeric IDs are rejected. Original money must be nonnegative, numerically two-decimal EUR and fit DECIMAL(19,2), max 99999999999999999.99. The API validates the exact JSON numeric token before decimal conversion to prevent silent input rounding; equivalent trailing zeros and exponent notation remain accepted. Coupon codes trim, uppercase invariantly, deduplicate ordinally and allow 1–64 ASCII letters/digits/underscores/hyphens starting with a letter/digit. Null lists/elements fail; empty lists work. Request/history/result collections are defensive snapshots.
 - Unknown/duplicate provider categories and malformed resolved discounts fail clearly. Missing categories are allowed by the reusable engine; the API registers all three. Duplicate discount IDs within a category fail; identities across different categories are independent. No per-request state is stored on the engine.
 - There is no central Discounts table. PromotionSegmentRates owns the complete instruction: segment, CalculationMethod, Value and CalculationBase. A promotion's segments may use different calculation bases. Since method and base now live on the same row, a normal CHECK requires CurrentAmount for fixed amounts; no trigger is needed. Promotions retains shared eligibility, validity and priority. GUID identifiers and the (PromotionId,SegmentCode) key are unchanged.
 
@@ -193,7 +204,7 @@ Future discussion: a new category adds a provider/repository/tables and a priori
 
 The approved plan is [docs/superpowers/plans/2026-11-08-erp-discounts.md](docs/superpowers/plans/2026-11-08-erp-discounts.md); the supplied specification is preserved beside it under docs/superpowers/specs. Commits follow domain/calculator/engine, providers, Dapper, SQL, integration tests and API, with tests included in each increment.
 
-The initial implementation was verified on 2026-11-08 using .NET SDK 10.0.403 and SQL Server 2019 LocalDB: 72 unit and 42 integration tests passed. Subsequent changes have separate verification entries in [docs/verification.md](docs/verification.md). The previously documented duplicate-provider regression has been fixed; all 78 unit tests pass. SQL Server tests and the executable HTTP smoke run against real LocalDB. Local functional checks use cached restores with auditing disabled; no claim of a successful online dependency audit is made. The user's dependency updates and the added cache/Polly packages are recorded in the project files; the committed audit policy remains unchanged.
+The original implementation's SQL Server2019 LocalDB runs are historical. The current modules target SQL Server2022; current build, test, dependency-audit and live walkthrough results are recorded in [docs/verification.md](docs/verification.md). Prior references to engine failures or offline auditing there describe earlier development states, not the current result.
 
 ## SQL Server 2022 environment
 
