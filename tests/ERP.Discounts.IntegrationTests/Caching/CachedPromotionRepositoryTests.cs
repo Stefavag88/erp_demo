@@ -113,6 +113,24 @@ public class CachedPromotionRepositoryTests
     }
 
     [Fact]
+    public async Task Callers_cannot_replace_cached_definitions_or_rates_through_collection_casts()
+    {
+        using var memory = new MemoryCache(new MemoryCacheOptions());
+        var inner = new Repository();
+        using var cached = new CachedPromotionRepository(inner, memory);
+        var first = await cached.GetDefinitionsAsync(default);
+
+        Assert.Throws<NotSupportedException>(() => ((IList<PromotionDefinition>)first)[0] = Definition(50));
+        Assert.Throws<NotSupportedException>(() => ((IList<PromotionSegmentRate>)first[0].SegmentRates)[0]
+            = new("GOLD", CalculationMethod.Percentage, 50));
+
+        var next = await cached.GetDefinitionsAsync(default);
+        Assert.Same(first, next);
+        Assert.Equal(10m, Assert.Single(next[0].SegmentRates).Value);
+        Assert.Equal(1, inner.Calls);
+    }
+
+    [Fact]
     public async Task Cancelling_a_waiter_does_not_cancel_the_current_loader()
     {
         using var memory = new MemoryCache(new MemoryCacheOptions());

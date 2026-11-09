@@ -2,6 +2,8 @@
 
 A .NET 10 technical assignment: calculate discounts for a single EUR order amount using a service-owned SQL Server database. The API returns an explainable breakdown and does not save results or redeem coupons.
 
+For the delivery quickstart and agreed scope, see [SUBMISSION.md](SUBMISSION.md).
+
 ## Setup and run
 
 Prerequisites: .NET 10 SDK, SQL Server (LocalDB works on Windows), and sqlcmd on PATH. The runtime uses Dapper 2.1.89, Microsoft.Data.SqlClient 7.1.1 and xUnit v3 for tests. No EF or migrations are used.

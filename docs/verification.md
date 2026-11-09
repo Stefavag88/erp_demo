@@ -94,3 +94,11 @@ The user authorized this as a separate commit after the registration fix (99bc89
 - Driver ConnectRetryCount is forced to zero; no SqlClient command-retry provider is installed. Query parameters/TVP and connections are created inside each attempt, and the policy's token is forwarded to open/query operations. No new circuit breaker, Result abstraction, cache layer or migrations were added.
 - Functional restores used cached packages with NuGetAudit=false as documented earlier. Microsoft.Extensions.TimeProvider.Testing 10.1.0 is test-only; fake time avoids waiting for the five-second budget in policy tests.
 - Without SQL opt-in, the integration project passes all 68 non-SQL tests and explicitly skips 21 SQL tests. The core unit suite remains SQL-independent.
+
+## Final delivery verification
+
+- A new regression reproduced replacement of a cached promotion through an IList cast. Both the outer catalog and nested rate snapshots now use read-only collections. All 10 cache tests pass, including index replacement protection and reuse of the unchanged snapshot.
+- Release build: zero warnings/errors. Full solution: 78 unit and 90 integration tests passed, zero failures/skips, with SQL opt-in against disposable LocalDB databases.
+- The Release API returned HTTP 200 with finalAmount 280.70, totalDiscount 59.30 and three discounts after fresh SQL deployment and a repeated seed run. The temporary API process and generated database were removed.
+- The online transitive dependency audit completed against the configured NuGet feeds and reported no known vulnerable packages in any project. This supersedes the earlier offline-audit limitation for the current dependency set; it is a point-in-time check.
+- SUBMISSION.md documents the clean setup, tests and approved differences from the historical specification. Source archives exclude Git internals, build output, package caches and local verification files.

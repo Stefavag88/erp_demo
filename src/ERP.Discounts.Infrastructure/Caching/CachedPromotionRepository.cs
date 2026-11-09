@@ -28,8 +28,8 @@ public sealed class CachedPromotionRepository(IPromotionRepository inner, IMemor
 
             var snapshot = definitions.Select(d => d with
             {
-                SegmentRates = [.. d.SegmentRates]
-            }).ToArray();
+                SegmentRates = d.SegmentRates.ToArray().AsReadOnly()
+            }).ToArray().AsReadOnly();
 
             cache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
             {
