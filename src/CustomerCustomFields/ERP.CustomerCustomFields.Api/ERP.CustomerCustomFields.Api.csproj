@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk.Web"><ItemGroup><ProjectReference Include="../ERP.CustomerCustomFields.Application/ERP.CustomerCustomFields.Application.csproj" /><ProjectReference Include="../ERP.CustomerCustomFields.Infrastructure/ERP.CustomerCustomFields.Infrastructure.csproj" /></ItemGroup></Project>
