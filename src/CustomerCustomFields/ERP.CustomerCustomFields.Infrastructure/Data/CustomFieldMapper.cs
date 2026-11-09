@@ -1,3 +1,4 @@
+using ERP.CustomerCustomFields.Domain.Enums;
 using System.Text.Json;
 using ERP.CustomerCustomFields.Domain.Models;
 namespace ERP.CustomerCustomFields.Infrastructure.Data;

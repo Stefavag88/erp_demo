@@ -1,6 +1,6 @@
 using ERP.CustomerCustomFields.Application.Contracts;
 using ERP.CustomerCustomFields.Application.Validation;
-using ERP.CustomerCustomFields.Domain.Models;
+using ERP.CustomerCustomFields.Domain.Enums;
 namespace ERP.CustomerCustomFields.UnitTests.Validation;
 public class CustomFieldValidatorTests
 {

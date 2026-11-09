@@ -1,5 +1,5 @@
 using ERP.CustomerCustomFields.Application.Contracts;
-using ERP.CustomerCustomFields.Domain.Models;
+using ERP.CustomerCustomFields.Domain.Enums;
 namespace ERP.CustomerCustomFields.Application.Validation;
 public static class CustomFieldValidator
 {

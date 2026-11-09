@@ -1,3 +1,4 @@
+using ERP.CustomerCustomFields.Domain.Enums;
 using System.Security.Claims;
 using ERP.CustomerCustomFields.Api.Contracts;
 using ERP.CustomerCustomFields.Application.Contracts;

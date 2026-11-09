@@ -1,4 +1,4 @@
-using ERP.CustomerCustomFields.Domain.Models;
+using ERP.CustomerCustomFields.Domain.Enums;
 namespace ERP.CustomerCustomFields.Application.Contracts;
 public sealed record CreateOptionCommand(string Label,int SortOrder);
 public sealed record CreateFieldCommand(string FieldKey,string Label,CustomFieldType FieldType,IReadOnlyList<CreateOptionCommand> Options);
