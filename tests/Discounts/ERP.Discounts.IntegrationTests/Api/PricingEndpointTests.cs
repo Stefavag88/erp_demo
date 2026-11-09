@@ -74,10 +74,10 @@ public class PricingEndpointTests
         Assert.Equal(HttpStatusCode.OK,response.StatusCode);var json=await response.Content.ReadFromJsonAsync<JsonElement>();Assert.Equal(340m,json.GetProperty("finalAmount").GetDecimal());Assert.Equal(0,json.GetProperty("discounts").GetArrayLength());
     }
     [Theory]
-    [InlineData("""{"orderId":"x","customerId":"c","originalAmount":1.001,"currency":"EUR","couponCodes":[]}""")]
-    [InlineData("""{"orderId":"","customerId":"c","originalAmount":10,"currency":"EUR","couponCodes":[]}""")]
-    [InlineData("""{"orderId":"x","customerId":"c","originalAmount":10,"currency":"EUR","couponCodes":null}""")]
-    [InlineData("""{"orderId":"x","customerId":"c","currency":"EUR","couponCodes":[]}""")]
+    [InlineData("""{"orderId":"x","customerId":"10000000-0000-4000-8000-019a6a000001","originalAmount":1.001,"currency":"EUR","couponCodes":[]}""")]
+    [InlineData("""{"orderId":"","customerId":"10000000-0000-4000-8000-019a6a000001","originalAmount":10,"currency":"EUR","couponCodes":[]}""")]
+    [InlineData("""{"orderId":"x","customerId":"10000000-0000-4000-8000-019a6a000001","originalAmount":10,"currency":"EUR","couponCodes":null}""")]
+    [InlineData("""{"orderId":"x","customerId":"10000000-0000-4000-8000-019a6a000001","currency":"EUR","couponCodes":[]}""")]
     [InlineData("null")] [InlineData("{broken")]
     public async Task Invalid_input_is_400(string request)
     {
