@@ -1,0 +1,47 @@
+@host = http://localhost:5081
+@customer = 10000000-0000-4000-8000-019a6a000001
+
+### Run in Development; field/option IDs below assume a fresh demo database.
+GET {{host}}/api/customers
+
+### Global text field
+POST {{host}}/api/custom-fields
+Content-Type: application/json
+
+{"fieldKey":"external_reference","label":"External reference","fieldType":"TEXT","options":[]}
+
+### Global dropdown
+POST {{host}}/api/custom-fields
+Content-Type: application/json
+
+{"fieldKey":"customer_segments","label":"Customer segments","fieldType":"MULTI_SELECT","options":[{"label":"VIP","sortOrder":1},{"label":"Retail","sortOrder":2},{"label":"Wholesale","sortOrder":3}]}
+
+### Both fields appear even without assigned values
+GET {{host}}/api/customers/{{customer}}/custom-fields
+
+### First assignment; no row expected
+PUT {{host}}/api/customers/{{customer}}/custom-fields/2
+Content-Type: application/json
+
+{"textValue":null,"selectedOptionIds":[1,3],"expectedVersion":null}
+
+### Whole-set replacement; expect version1
+PUT {{host}}/api/customers/{{customer}}/custom-fields/2
+Content-Type: application/json
+
+{"textValue":null,"selectedOptionIds":[2,3],"expectedVersion":1}
+
+### Same set, reverse order: changed=false, stays version2
+PUT {{host}}/api/customers/{{customer}}/custom-fields/2
+Content-Type: application/json
+
+{"textValue":null,"selectedOptionIds":[3,2],"expectedVersion":2}
+
+### Two transitions, actor1, UTC timestamps
+GET {{host}}/api/customers/{{customer}}/custom-fields/2/history
+
+### New customers receive global definitions with unset values
+POST {{host}}/api/customers
+Content-Type: application/json
+
+{"name":"Customer C"}
