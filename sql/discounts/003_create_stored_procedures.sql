@@ -5,6 +5,8 @@ CREATE OR ALTER PROCEDURE dbo.usp_PriceList_GetEligible
 AS
 BEGIN
     SET NOCOUNT ON;
+    -- @AsOfUtc is sampled once per pricing request. Validity is [start,end), with
+    -- NULL bounds unbounded. Ordering and monetary calculation stay in C#.
     SELECT d.Id,d.Name,d.CalculationMethod,d.CalculationBase,d.Value,d.PriorityWithinType
     FROM dbo.CustomerPriceLists a
     JOIN dbo.PriceLists p ON p.Id=a.PriceListId
@@ -20,6 +22,8 @@ BEGIN
     SET NOCOUNT ON;
     -- Cacheable catalog: eligibility is evaluated per request by the C# provider.
     -- Materialize definitions and rates together so both result sets share one selection.
+    -- A full catalog read is intentional; future/inactive candidates remain available
+    -- for per-request eligibility checks without an extra database round trip.
     SELECT p.Id,p.Name,p.MinimumCurrentAmount,p.PriorityWithinType,p.IsActive,p.StartsAtUtc,p.EndsAtUtc,
            r.SegmentCode,r.CalculationMethod,r.CalculationBase,r.Value
     INTO #Candidates
@@ -38,6 +42,7 @@ BEGIN
     FROM dbo.Coupons c JOIN @Codes requested ON requested.Code=c.Code
     WHERE c.IsActive=1 AND (c.StartsAtUtc IS NULL OR c.StartsAtUtc<=@AsOfUtc)
       AND (c.EndsAtUtc IS NULL OR @AsOfUtc<c.EndsAtUtc)
+      -- An empty allow-list means unrestricted; otherwise require this customer.
       AND (NOT EXISTS(SELECT 1 FROM dbo.CouponCustomerEligibility e WHERE e.CouponId=c.Id)
         OR EXISTS(SELECT 1 FROM dbo.CouponCustomerEligibility e WHERE e.CouponId=c.Id AND e.CustomerId=@CustomerId));
 END;

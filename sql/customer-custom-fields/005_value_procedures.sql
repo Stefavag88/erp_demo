@@ -38,7 +38,7 @@ BEGIN
          dbo.CustomFieldDefinition AS f
          ON f.FieldId = o.FieldId
     WHERE f.IsActive = 1
-    ORDER BY o.SortOrder, o.OptionId;
+    ORDER BY o.FieldId, o.SortOrder, o.OptionId;
 END
 
 GO
@@ -62,7 +62,7 @@ BEGIN
         Changed BIT);
     BEGIN TRY
         BEGIN TRANSACTION;
-        -- Consistent lock order: definition -> options -> customer/value key. HOLDLOCK
+        -- Consistent lock order: definition -> customer -> options -> value key. HOLDLOCK
         -- retains metadata shared locks until commit; metadata mutations lock definition first.
         SELECT @Type = FieldType,
                @Active = IsActive
@@ -129,6 +129,8 @@ BEGIN
         FROM dbo.CustomerFieldValue WITH (UPDLOCK, HOLDLOCK)
         WHERE CustomerId = @CustomerId
               AND FieldId = @FieldId;
+        -- Check the caller's version before no-op detection: stale submissions must
+        -- conflict even when their proposed value happens to match the current row.
         IF (@Version IS NULL
             AND @ExpectedVersion IS NOT NULL)
            OR (@Version IS NOT NULL
@@ -158,6 +160,8 @@ BEGIN
                     END
             END
         ELSE
+            -- Compare exact text bytes and lengths: ordinary SQL string equality
+            -- may ignore case or trailing spaces under the database collation.
             IF (@Type = 1
                 AND ((@OldText IS NULL
                       AND @TextValue IS NOT NULL)
@@ -178,7 +182,7 @@ BEGIN
                           AND FieldId = @FieldId;
                     SET @Changed = 1;
                 END
-        INSERT @Result
+        INSERT @Result (CustomerId, FieldId, TextValue, SelectedOptionIds, ValueVersion, ChangedByUserId, ChangedAtUtc, Changed)
         SELECT @CustomerId,
                @FieldId,
                TextValue,
@@ -192,10 +196,18 @@ BEGIN
               AND FieldId = @FieldId;
         IF NOT EXISTS (SELECT 1
                        FROM @Result)
-            INSERT @Result
+            INSERT @Result (CustomerId, FieldId, TextValue, SelectedOptionIds, ValueVersion, ChangedByUserId, ChangedAtUtc, Changed)
             VALUES (@CustomerId, @FieldId, NULL, CASE WHEN @Type = 2 THEN N'[]' END, NULL, NULL, NULL, 0);
         COMMIT TRANSACTION;
-        SELECT *
+        -- Keep the Dapper result contract explicit if internal table variables grow.
+        SELECT CustomerId,
+               FieldId,
+               TextValue,
+               SelectedOptionIds,
+               ValueVersion,
+               ChangedByUserId,
+               ChangedAtUtc,
+               Changed
         FROM @Result;
     END TRY
     BEGIN CATCH
@@ -229,7 +241,7 @@ BEGIN
         ChangedAtUtc DATETIME2 (7) NOT NULL,
         ChangedByUserId INT NOT NULL
     );
-    INSERT @CurrentVersion
+    INSERT @CurrentVersion (ValueVersion, TextValue, SelectedOptionIds, ChangedAtUtc, ChangedByUserId)
     SELECT ValueVersion,
            TextValue,
            SelectedOptionIds,

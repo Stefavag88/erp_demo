@@ -19,8 +19,7 @@ BEGIN
     SET NOCOUNT ON;
     IF @CustomerId IS NULL
        OR @CustomerId = '00000000-0000-0000-0000-000000000000'
-       OR @Name IS NULL
-       OR LEN(LTRIM(RTRIM(@Name))) = 0
+       OR dbo.CustomField_IsBlank(@Name) = 1
        OR DATALENGTH(@Name) > 400
         THROW 51000, 'A valid customer ID and name are required.', 1;
     INSERT dbo.Customer (CustomerId, Name)

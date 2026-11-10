@@ -2,6 +2,7 @@ USE [$(DatabaseName)];
 GO
 -- CalculationMethod: 1=Percentage, 2=FixedAmount; CalculationBase: 1=CurrentAmount, 2=OriginalAmount.
 SET XACT_ABORT ON;
+SET NOCOUNT ON;
 BEGIN TRANSACTION;
 -- Stable IDs and key-specific upserts make this repeatable without deleting user data.
 MERGE dbo.PriceLists WITH (HOLDLOCK) AS target

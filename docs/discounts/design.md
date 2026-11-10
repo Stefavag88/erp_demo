@@ -71,6 +71,8 @@ erDiagram
 
 Every relationship shown is an actual foreign key. CustomerPriceLists and CouponCustomerEligibility have composite primary keys; each assignment belongs to one PriceList or Coupon. A definition may have no assignments. PriceListDiscounts belongs to one PriceList. PromotionSegmentRates has one row per promotion/segment pair, containing that segment's complete calculation instruction. Coupons.Code is unique and normalized.
 
+The [final SQL access-path review](../decisions/2026-11-10-sql-access-path-review.md) found the existing discount lookup indexes sufficient for the implemented queries. Customer/list, promotion/segment and coupon/customer composite keys match their predicates; the list-discount projection is covered and coupon codes are unique/indexed. Promotion refresh intentionally reads the full catalog, so active-flag or date-window indexes were not added speculatively.
+
 CustomerId in the assignment tables is an opaque ERP customer identifier, not a foreign key to a locally owned Customer table or to the customer-fields database. SegmentCode is matched to the value returned by ICustomerSegmentProvider, not a foreign key to a segment table. No cross-module relationship is implied. The demo segment provider supplies fixed example values; it does not query custom fields.
 
 An empty coupon customer allow-list means the coupon is unrestricted; once entries exist, the requesting customer must match one. Price-list discounts require an explicit customer assignment. The database stores no order, pricing result, central Discounts table or customer-segment profile. CouponCodeList is a table-valued parameter type, not a persisted entity, so it is not shown in the ER diagram.

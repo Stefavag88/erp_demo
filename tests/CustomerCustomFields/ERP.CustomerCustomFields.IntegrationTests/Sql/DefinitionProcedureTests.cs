@@ -1,7 +1,28 @@
+using System.Data;
+using Dapper;
+using Microsoft.Data.SqlClient;
+
 namespace ERP.CustomerCustomFields.IntegrationTests.Sql;
 
 public class DefinitionProcedureTests
 {
+    [SqlServerFact]
+    public async Task Customer_creation_rejects_Unicode_blank_names_at_the_SQL_boundary()
+    {
+        await using var db = await SqlServerFixture.CreateAsync(4);
+        using var connection = new SqlConnection(db.ConnectionString);
+        foreach (var blank in new[] { "\t", "\u00a0", "\u2003", "\r\n" })
+        {
+            var exception = await Assert.ThrowsAsync<SqlException>(() => connection.ExecuteAsync(
+                "dbo.Customer_Create", new { CustomerId = Guid.NewGuid(), Name = blank }, commandType: CommandType.StoredProcedure));
+            Assert.Equal(51000, exception.Number);
+        }
+
+        var id = Guid.NewGuid();
+        await connection.ExecuteAsync("dbo.Customer_Create", new { CustomerId = id, Name = "Customer A" }, commandType: CommandType.StoredProcedure);
+        Assert.Equal("Customer A", await connection.ExecuteScalarAsync<string>("SELECT Name FROM dbo.Customer WHERE CustomerId=@id", new { id }));
+    }
+
     internal static Task Setup(SqlServerFixture db) => db.SqlAsync("INSERT dbo.AppUser(DisplayName) VALUES(N'Demo'); INSERT dbo.Customer VALUES('10000000-0000-4000-8000-019a6a000001',N'A'),('10000000-0000-4000-8000-019a6a000002',N'B');");
 
     [SqlServerFact]

@@ -1,6 +1,8 @@
 USE [$(DatabaseName)];
 
 GO
+-- Identity and customer records are demonstration data local to this module.
+-- Customer GUIDs are supplied by the application; SQL does not generate IDs.
 CREATE SCHEMA history;
 
 GO
@@ -37,6 +39,9 @@ CREATE TABLE dbo.CustomFieldOption (
     IsActive BIT DEFAULT 1 NOT NULL
 );
 
+-- Current state is application-written; only SQL Server writes its temporal history.
+-- Avoid cascading deletes and history retention policies that would discard audit
+-- transitions. ChangedAtUtc is operation time; period columns are transaction time.
 CREATE TABLE dbo.CustomerFieldValue (
     CustomerId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Customer (CustomerId),
     FieldId INT NOT NULL FOREIGN KEY REFERENCES dbo.CustomFieldDefinition (FieldId),

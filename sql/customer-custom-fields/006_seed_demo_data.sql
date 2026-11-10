@@ -2,6 +2,7 @@ USE [$(DatabaseName)];
 
 GO
 SET XACT_ABORT ON;
+SET NOCOUNT ON;
 
 BEGIN TRANSACTION;
 

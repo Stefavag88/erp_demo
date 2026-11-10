@@ -2,6 +2,8 @@ USE [$(DatabaseName)];
 
 GO
 -- Application error codes: 51000 validation, 51001 missing resource, 51002 conflict.
+-- Inputs stay NVARCHAR(MAX) until validated so oversized values are rejected,
+-- rather than silently truncated by procedure parameter binding.
 CREATE FUNCTION dbo.CustomField_IsBlank
 (@Value NVARCHAR (MAX))
 RETURNS BIT
@@ -112,7 +114,8 @@ BEGIN
          ON f.FieldId = o.FieldId
     WHERE @IncludeInactive = 1
           OR f.IsActive = 1
-    ORDER BY o.SortOrder, o.OptionId;
+    -- The repository groups by FieldId; within-field ordering is the API contract.
+    ORDER BY o.FieldId, o.SortOrder, o.OptionId;
 END
 
 GO

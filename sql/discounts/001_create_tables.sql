@@ -5,6 +5,9 @@ GO
 -- CalculationBase: 1 = CurrentAmount, 2 = OriginalAmount.
 SET XACT_ABORT ON;
 GO
+-- Discount-domain ownership only: CustomerId and SegmentCode refer to external ERP
+-- identifiers, not tables owned here or in the custom-fields module. GUIDs are
+-- supplied by callers/seeds; there is no database-side identifier generator.
 CREATE TABLE dbo.PriceLists (
     Id uniqueidentifier NOT NULL CONSTRAINT PK_PriceLists PRIMARY KEY,
     Name nvarchar(200) NOT NULL,
