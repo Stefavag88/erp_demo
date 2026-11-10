@@ -6,6 +6,10 @@ Endpoint handlers depend on Application's `ICustomFieldService` and `ICustomerSe
 
 Repository construction and DI follow the discount module's pattern: register one singleton `SqlConnectionFactory`, a scoped customer repository, and singleton custom-field Dapper/caching repositories. The cached repositories match the singleton promotion repository pattern in discounts and hold no request state. The singleton is a factory, not a shared open connection; each operation uses `await using` with `OpenAsync(cancellationToken)`, which cleans up failed opens. Connection-string configuration is normalized once and SqlClient connection retries are disabled. Repositories use explicitly typed parameters and stored-procedure `CommandDefinition` objects with cancellation, database-only row types with instance mapping methods, and read-only result collections. Customer-field operations remain single-attempt; the discount module's existing Polly read policy is not applied to customer-field writes.
 
+## ER diagram
+
+[Open the standalone SVG diagram](er-diagram.svg). Table columns and constraints are defined in [001_create_tables.sql](../../sql/customer-custom-fields/001_create_tables.sql). The diagram distinguishes actual foreign keys from the conceptual temporal-history relationship explained below.
+
 ```mermaid
 erDiagram
     AppUser ||--o{ CustomFieldDefinition : creates

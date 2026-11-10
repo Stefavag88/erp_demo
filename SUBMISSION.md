@@ -1,6 +1,6 @@
 # ERP assignment submission
 
-The source archive contains both independent .NET 10 modules, the shared cache infrastructure, unit/integration tests, fresh SQL Server 2022 scripts, HTTP samples, the custom-fields ER diagram and the demo UI. It excludes secrets, Git metadata, caches and build output. Extract it, open `ERP.sln`, and run the commands below from the extracted `ERP` directory. Git is not required to build or run the submission.
+The source archive contains both independent .NET 10 modules, the shared cache infrastructure, unit/integration tests, fresh SQL Server 2022 scripts, HTTP samples, both module ER diagrams (Mermaid and standalone SVG) and the demo UI. It excludes secrets, Git metadata, caches and build output. Extract it, open `ERP.sln`, and run the commands below from the extracted `ERP` directory. Git is not required to build or run the submission.
 
 ## Prerequisites
 
@@ -59,6 +59,15 @@ dotnet list ERP.sln package --vulnerable --include-transitive
 ```
 
 Configured SQL tests require engine 16; a wrong version fails clearly. Fixtures create unique test databases and clean only their own names. `sqlcmd` is required for GO-batched provisioning. In-memory/SQLite tests do not substitute for temporal/SQL acceptance tests.
+
+## Module documentation and ER diagrams
+
+| Module | Guide | Design and ER diagram | Standalone diagram |
+|---|---|---|---|
+| Discounts | [Walkthrough](docs/discounts/README.md) | [Design and relationships](docs/discounts/design.md) | [SVG](docs/discounts/er-diagram.svg) |
+| Customer custom fields | [Walkthrough](docs/customer-custom-fields/README.md) | [Design and relationships](docs/customer-custom-fields/design.md) | [SVG](docs/customer-custom-fields/er-diagram.svg) |
+
+The embedded Mermaid diagrams can be viewed in a Mermaid-enabled Markdown viewer. Standalone SVG files open directly in a browser without extra tooling. The diagrams represent the implemented SQL schema, including primary/composite keys, foreign keys and the SQL-managed temporal history table.
 
 ## Agreed scope
 
