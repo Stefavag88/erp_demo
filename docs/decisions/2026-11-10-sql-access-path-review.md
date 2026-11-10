@@ -6,23 +6,23 @@ Reviewed both modules' provisioning scripts, tables, indexes, stored procedures 
 
 - Added `IX_Customer_Name(Name, CustomerId)` for `Customer_List`'s exact display-name/GUID ordering. It covers the two-column projection and removes the explicit sort.
 - Extended the existing `IX_Option_Field(FieldId, SortOrder, OptionId)` with `Label, IsActive`. Catalog/profile option result sets now order by that same key. The repository groups options by FieldId, so each field's public option order remains SortOrder/OptionId. This replaces sort/lookup work with a covered ordered access path.
-- Extended the existing `IX_History_CustomerFieldVersion(CustomerId, FieldId, ValueVersion)` with the text/selection payload and audit metadata. The history query can seek one customer/field and read snapshots without one clustered-history lookup per version. SQL Server's existing temporal period index is retained for time-based queries.
+- Retained the narrow `IX_History_CustomerFieldVersion(CustomerId, FieldId, ValueVersion)` without included payload columns. Following the explicit storage-priority decision, occasional history reads accept base-history lookups rather than duplicating text/JSON and audit metadata for every version. SQL Server's existing temporal period index remains available for time-based queries.
 - Reused the Unicode whitespace helper in `Customer_Create`, matching application validation and the other SQL metadata writes. A regression test first demonstrated that tabs were incorrectly accepted; it also checks other Unicode whitespace and a valid name.
 - Made write-result and table-variable insert columns explicit. Added comments explaining index purpose, external ID ownership, half-open validity, unrestricted coupons, full promotion-catalog reads, metadata/value locking, version checks before no-op detection, exact text comparison, and temporal history. Corrected the lock-order comment to match actual acquisition order. Seed scripts now suppress row-count messages.
 
 ## Measurement
 
-An isolated SQL Server 2022 fixture contained 5,000 customers, 5,000 options across ten multi-select fields, and 100,000 historical versions across 1,000 customers. The history measurement returned one customer's 100 prior versions plus its current row. Histories used roughly 130-character text values. Plans and STATISTICS IO were captured before and after the candidate DDL; no production/user database was altered.
+An isolated SQL Server 2022 fixture contained 5,000 customers, 5,000 options across ten multi-select fields, and 100,000 historical versions across 1,000 customers. The history measurement returned one customer's 100 prior versions plus its current row. Histories used roughly 130-character text values. Plans and STATISTICS IO were captured before and after the candidate DDL; no production/user database was altered. The history covering candidate shown below was evaluated but is not retained in the delivered schema because storage cost takes priority.
 
-| Query | Before | After | Observed plan change |
+| Query | Before | Candidate | Observed plan change |
 |---|---:|---:|---|
 | Customer list | 38 logical reads | 36 logical reads | Clustered scan plus Sort replaced by ordered index scan |
 | Active option catalog | 33 logical reads | 61 logical reads | Clustered scan/hash/sort replaced by covered per-field seeks/nested loops; no explicit Sort |
-| Customer/field history | 328 logical reads | 18 logical reads | Covered history index seek; repeated history-clustered accesses removed |
+| Customer/field history (covering candidate rejected) | 328 logical reads | 18 logical reads | Fewer lookups, but duplicates every version's payload |
 
 These are query-specific fixture results, not an overall API speed benchmark. Option reads increased in this fixture even though the sort was eliminated; the improvement is the ordered/covering access path and reduced sort-memory requirement, not a blanket claim of lower I/O. Actual distribution, field counts and cardinality estimates affect the chosen plan.
 
-Covering history duplicates potentially large text/JSON values and audit columns. This increases storage and temporal-write maintenance. It is a deliberate read-path tradeoff for complete audit retrieval and must be reassessed against real history volumes and retention requirements. The option index similarly duplicates labels, though its rows are smaller and metadata changes infrequently. No fill-factor, compression, forced index, NOLOCK or blanket recompile setting was added.
+Covering history would duplicate potentially large text/JSON values and audit columns, increasing storage and temporal-write maintenance for every meaningful change. That tradeoff was rejected: historical read speed is secondary, and the delivered index retains only its three key columns. The 18-read result describes the rejected candidate, not the current schema. The option index similarly duplicates labels, though its rows are smaller and metadata changes infrequently. No fill-factor, compression, forced index, NOLOCK or blanket recompile setting was added.
 
 ## Indexes deliberately retained without additions
 

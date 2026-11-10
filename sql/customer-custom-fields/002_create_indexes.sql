@@ -17,10 +17,9 @@ CREATE INDEX IX_Option_Field
 CREATE INDEX IX_Value_Field
     ON dbo.CustomerFieldValue(FieldId, CustomerId);
 
--- Audit reads seek one customer/field and return consecutive version snapshots.
--- Covering the payload avoids history-clustered-index lookups per version. This
--- duplicates text/JSON storage and adds work to temporal writes; reassess that
--- tradeoff with real retention volumes. Keep SQL Server's period index for AS OF.
+-- Audit reads seek one customer/field and order by version. Keep this index narrow:
+-- history grows on every meaningful change, so duplicating text/JSON and audit
+-- payloads would increase storage and write maintenance for occasional reads.
+-- Accept base-history lookups; retain SQL Server's period index for AS OF queries.
 CREATE INDEX IX_History_CustomerFieldVersion
-    ON history.CustomerFieldValueHistory(CustomerId, FieldId, ValueVersion)
-    INCLUDE (TextValue, SelectedOptionIds, ChangedAtUtc, ChangedByUserId);
+    ON history.CustomerFieldValueHistory(CustomerId, FieldId, ValueVersion);
