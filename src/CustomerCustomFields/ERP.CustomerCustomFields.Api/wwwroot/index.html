@@ -3,114 +3,83 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>
-            Customer custom fields
-        </title>
+        <title>ERP · Customer workspace</title>
         <link rel="stylesheet" href="/styles.css">
     </head>
     <body>
         <main>
-            <header>
-                <p>
-                    ERP assignment Â· Part two
-                </p>
-                <h1>
-                    Customer custom fields
-                </h1>
-                <p>
-                    Definitions are global. Values and their history belong to each customer.
-                </p>
-                <p>
-                    Local demo: run in Development to use the seeded demo actor.
-                </p>
+            <header class="page-header">
+                <div>
+                    <p class="eyebrow">ERP / CUSTOMER MANAGEMENT</p>
+                    <h1>Customer workspace</h1>
+                    <p>Define fields once. Manage values and track changes for each customer.</p>
+                </div>
+                <span class="badge">Assignment demo</span>
             </header>
-            <p id="status" role="status" aria-live="polite">
-            </p>
-            <section>
-                <h2>
-                    Customer profile
-                </h2>
-                <label for="customer">
-                    Customer
-                </label>
-                <select id="customer">
-                </select>
-                <button id="refresh" type="button">
-                    Refresh profile
-                </button>
-                <div id="profile">
+            <nav aria-label="Workspace sections">
+                <button id="nav-profiles" type="button" aria-controls="profiles" aria-current="page">Customer profiles</button>
+                <button id="nav-fields" type="button" aria-controls="fields">Global fields</button>
+                <button id="nav-customers" type="button" aria-controls="customers">Customers</button>
+                <button id="nav-activity" type="button" aria-controls="activity">Change history</button>
+            </nav>
+            <p id="status" role="status" aria-live="polite"></p>
+            <section id="profiles" aria-labelledby="profiles-title">
+                <h2 id="profiles-title">Customer profiles</h2>
+                <p class="description">Choose a customer, edit their values, then save each field. Global field definitions are managed separately.</p>
+                <div class="toolbar">
+                    <label for="customer">Selected customer <select id="customer"></select></label>
+                    <button id="refresh" type="button">Refresh profile</button>
+                </div>
+                <div id="profile"></div>
+            </section>
+            <section id="fields" aria-labelledby="fields-title" hidden>
+                <h2 id="fields-title">Global fields</h2>
+                <p class="description">These definitions and available choices apply to every customer. Deactivation hides a field but keeps its saved values and history.</p>
+                <div class="management-layout">
+                    <div>
+                        <h3>Field library</h3>
+                        <ul id="field-library" class="definition-list"></ul>
+                    </div>
+                    <aside class="form-card">
+                        <h3>Create a field</h3>
+                        <p class="description">The key identifies the field permanently. Give it a clear, reusable name.</p>
+                        <form id="create-field">
+                            <label>Stable key <input name="fieldKey" required maxlength="100" placeholder="external_reference"></label>
+                            <label>Display label <input name="label" required maxlength="200" placeholder="External reference"></label>
+                            <label>Control <select id="field-type" name="fieldType">
+                                <option value="TEXT">Text</option>
+                                <option value="MULTI_SELECT">Multi-select</option>
+                            </select></label>
+                            <label id="initial-options" hidden>Available options, one per line
+                                <textarea name="options" rows="4" placeholder="VIP&#10;Retail&#10;Wholesale"></textarea>
+                            </label>
+                            <button class="primary">Create field for all customers</button>
+                        </form>
+                    </aside>
                 </div>
             </section>
-            <section>
-                <h2>
-                    Create a global field
-                </h2>
-                <form id="create-field">
-                    <label>
-                        Stable key
-                        <input name="fieldKey" required maxlength="100" placeholder="external_reference">
-                    </label>
-                    <label>
-                        Label
-                        <input name="label" required maxlength="200" placeholder="External reference">
-                    </label>
-                    <label>
-                        Control
-                        <select name="fieldType">
-                            <option value="TEXT">
-                                Text
-                            </option>
-                            <option value="MULTI_SELECT">
-                                Multi-select
-                            </option>
-                        </select>
-                    </label>
-                    <label>
-                        Initial options, one label per line
-                        <textarea name="options" rows="3" placeholder="VIP&#10;Retail&#10;Wholesale">
-                        </textarea>
-                    </label>
-                    <button>
-                        Create field for all customers
-                    </button>
-                </form>
-            </section>
-            <section>
-                <h2>
-                    New customer
-                </h2>
-                <form id="create-customer">
-                    <label>
-                        Name
-                        <input name="name" required maxlength="200">
-                    </label>
-                    <button>
-                        Create customer
-                    </button>
-                </form>
-            </section>
-            <section>
-                <h2>
-                    Inactive fields
-                </h2>
-                <p>
-                    Reactivate definitions here. Existing values and history are retained.
-                </p>
-                <div id="inactive">
+            <section id="customers" aria-labelledby="customers-title" hidden>
+                <h2 id="customers-title">Customers</h2>
+                <p class="description">Open a profile to manage its values. New customers automatically have all active fields available, initially unset.</p>
+                <div class="management-layout">
+                    <ul id="customer-list" class="definition-list"></ul>
+                    <aside class="form-card">
+                        <h3>Add a customer</h3>
+                        <form id="create-customer">
+                            <label>Customer name <input name="name" required maxlength="200" placeholder="Customer name"></label>
+                            <button class="primary">Create and open profile</button>
+                        </form>
+                    </aside>
                 </div>
             </section>
-            <section>
-                <h2>
-                    Change history
-                </h2>
-                <p id="history-title">
-                    Choose History beside a field.
-                </p>
-                <div id="history">
-                </div>
+            <section id="activity" aria-labelledby="activity-title" hidden>
+                <h2 id="activity-title">Change history</h2>
+                <p class="description">Each saved change shows its previous and new value, UTC timestamp and actor. Saving an unchanged value creates no additional history.</p>
+                <p id="history-title" class="history-context">Choose History beside a profile field, or in the global field library.</p>
+                <div id="history" class="table-scroll"></div>
             </section>
+            <footer>Demo identity is available in Development. Field definitions are global; values and history belong to the selected customer.</footer>
         </main>
-        <script src="/app.js" defer>
-        </script>
+        <script src="/app.js" defer></script>
     </body>
 </html>

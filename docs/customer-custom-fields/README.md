@@ -2,17 +2,19 @@
 
 See [combined setup](../../SUBMISSION.md) for SQL Server 2022 provisioning and API startup on port 5081. [The ER diagram](design.md) describes relationships and tradeoffs. The default connection uses `(localdb)\ERP2022` with Windows Authentication. Other native or Docker servers can be selected with connection-string environment overrides. Never commit a real password.
 
+The internal menu separates **Customer profiles** (saved values), **Global fields** (definitions, options and activation), **Customers** (list and creation), and **Change history** (the selected customer/field).
+
 ## Walkthrough
 
 1. Open the page in Development with a fresh seeded database. Customer A and B initially have no fields.
-2. Create External reference (TEXT), then Customer segments (MULTI_SELECT) with VIP, Retail and Wholesale options. Both profiles now show both fields, initially unset.
-3. Set A's reference to ABC-123 and B's to XYZ-999. Values remain isolated.
+2. In Global fields, create External reference (TEXT), then Customer segments (MULTI_SELECT) with VIP, Retail and Wholesale options. Both profiles now show both fields, initially unset.
+3. In Customer profiles, set A's reference to ABC-123 and B's to XYZ-999. Values remain isolated.
 4. On A, select VIP/Retail and Save; change to VIP/Wholesale and Save. History shows unset -> VIP/Retail -> VIP/Wholesale, consecutive versions, database UTC operation times and actor 1.
 5. Save the unchanged selection: changed=false and no new version/history. An equivalent reverse-order request in the HTTP sample is also a no-op.
 6. Clear a prior value and save: the old value remains in history. Clearing a never-set field creates no row.
 7. Send an old expectedVersion from the HTTP sample: 409. Refresh before retrying. A stale version conflicts even for an otherwise unchanged value.
-8. Add/deactivate options or deactivate a field. Retained inactive selections remain readable; newly selecting an inactive option is rejected. History remains accessible for inactive definitions via the Inactive fields section.
-9. Create Customer C: it receives all active definitions with unset values and an application-generated regular GUID.
+8. In Global fields, expand Manage options to add/deactivate options or deactivate a field. Retained inactive selections remain readable; newly selecting an inactive option is rejected. History remains accessible for inactive definitions through the Global fields list, including inactive definitions.
+9. In Customers, create Customer C: it receives all active definitions with unset values and an application-generated regular GUID.
 
 ## HTTP contract
 

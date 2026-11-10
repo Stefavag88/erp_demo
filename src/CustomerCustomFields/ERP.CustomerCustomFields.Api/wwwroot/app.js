@@ -9,6 +9,15 @@ function element(tag, text) {
         node.textContent = text;
     return node;
 }
+function showSection(selected) {
+    for (const id of ["profiles", "fields", "customers", "activity"]) {
+        $(id).hidden = id !== selected;
+        $("nav-" + id).setAttribute("aria-current", id === selected ? "page" : "false");
+    }
+}
+function updateFieldType() {
+    $("initial-options").hidden = $("field-type").value !== "MULTI_SELECT";
+}
 function status(message) {
     $("status").textContent = message;
 }
@@ -41,10 +50,19 @@ function action(label, callback) {
 async function loadCustomers(selected) {
     const customers = await api("/api/customers");
     $("customer").replaceChildren();
+    $("customer-list").replaceChildren();
     for (const customer of customers) {
         const option = element("option", customer.name);
         option.value = customer.customerId;
         $("customer").append(option);
+        const item = element("li"), open = action("Open profile", async () => {
+            $("customer").value = customer.customerId;
+            showSection("profiles");
+            await loadProfile();
+        });
+        item.className = "definition";
+        item.append(element("h3", customer.name), open);
+        $("customer-list").append(item);
     }
     if (selected)
         $("customer").value = selected;
@@ -52,10 +70,12 @@ async function loadCustomers(selected) {
 }
 async function history(field) {
     const customer = $("customer").value, request = ++historyRequest;
+    showSection("activity");
+    $("history-title").textContent = field.label + " · " + ($("customer").selectedOptions?.[0]?.textContent ?? customer);
+    $("history").replaceChildren(element("p", "Loading changes…"));
     const rows = await api(`/api/customers/${customer}/custom-fields/${field.fieldId}/history`);
     if (request !== historyRequest || $("customer").value !== customer)
         return;
-    $("history-title").textContent = field.label;
     $("history").replaceChildren();
     if (!rows.length) {
         $("history").append(element("p", "No values have been assigned."));
@@ -79,6 +99,7 @@ async function loadProfile() {
     const customer = $("customer").value, request = ++profileRequest;
     ++historyRequest;
     $("history").replaceChildren();
+    $("history-title").textContent = "Choose History beside a profile field, or in the global field library.";
     $("profile").replaceChildren(element("p", "Loading profile…"));
     if (!customer) {
         $("profile").replaceChildren();
@@ -90,7 +111,7 @@ async function loadProfile() {
     currentFields = fields;
     $("profile").replaceChildren();
     if (!currentFields.length)
-        $("profile").append(element("p", "No active fields. Create one below; it will appear on every profile."));
+        $("profile").append(element("p", "No active fields yet. Open Global fields to create one for every customer."));
     for (const row of currentFields) {
         const field = row.definition, state = row.value, container = element("div");
         container.className = "field";
@@ -125,46 +146,73 @@ async function loadProfile() {
                 return;
             status(result.changed ? "Value saved. History updated." : "No change; no new history was created.");
             await loadProfile();
-        }), action("History", () => history(field)), action("Deactivate field", async () => {
-            await api(`/api/custom-fields/${field.fieldId}/active`, "PATCH", {
-                isActive: false
-            });
-            await loadProfile();
-        }));
+        }), action("History", () => history(field)));
         if (field.fieldType === "MULTI_SELECT") {
-            const input = element("input");
-            input.placeholder = "New option label";
-            input.maxLength = 200;
-            input.setAttribute("aria-label", `New option for ${field.label}`);
-            container.append(input, action("Add option", async () => {
-                await api(`/api/custom-fields/${field.fieldId}/options`, "POST", {
-                    label: input.value,
-                    sortOrder: field.options.length + 1
-                });
-                await loadProfile();
-            }));
-            for (const option of field.options)
-                container.append(action(`${option.isActive ? "Deactivate" : "Reactivate"} option: ${option.label}`, async () => {
-                    await api(`/api/custom-fields/${field.fieldId}/options/${option.optionId}/active`, "PATCH", {
-                        isActive: !option.isActive
-                    });
-                    await loadProfile();
-                }));
+            const hint = element("p", "Hold Ctrl (Windows) or Command (Mac) to select multiple options, then Save. To clear a saved value, deselect all options and save again.");
+            hint.className = "hint";
+            container.append(hint);
         }
         $("profile").append(container);
     }
     const all = await api("/api/custom-fields?includeInactive=true");
     if (request !== profileRequest || $("customer").value !== customer)
         return;
-    $("inactive").replaceChildren();
-    for (const field of all.filter(field => !field.isActive))
-        $("inactive").append(action(`Reactivate ${field.label}`, async () => {
-            await api(`/api/custom-fields/${field.fieldId}/active`, "PATCH", {
-                isActive: true
-            });
-            await loadProfile();
-        }), action(`History: ${field.label}`, () => history(field)));
+    renderDefinitions(all);
 }
+function renderDefinitions(fields) {
+    $("field-library").replaceChildren();
+    if (!fields.length)
+        $("field-library").append(element("li", "No field definitions yet. Use the form to create your first field."));
+    for (const field of fields) {
+        const item = element("li"), actions = element("div");
+        item.className = "definition" + (field.isActive ? "" : " inactive");
+        actions.className = "actions";
+        item.append(element("h3", field.label), element("small", `${field.fieldKey} · ${field.fieldType === "TEXT" ? "Text" : "Multi-select"} · ${field.isActive ? "Active" : "Inactive"}`));
+        actions.append(action(field.isActive ? "Deactivate field" : "Reactivate field", async () => {
+            await api(`/api/custom-fields/${field.fieldId}/active`, "PATCH", { isActive: !field.isActive });
+            await loadProfile();
+            status(field.isActive ? "Field deactivated. Saved values and history are retained." : "Field reactivated for every customer.");
+        }), action("History for selected customer", () => history(field)));
+        item.append(actions);
+        if (field.fieldType === "MULTI_SELECT") {
+            const details = element("details"), input = element("input"), add = element("div");
+            details.append(element("summary", `Manage options (${field.options.length})`));
+            for (const option of field.options) {
+                const row = element("div");
+                row.className = "option-row";
+                const toggle = action(option.isActive ? "Deactivate" : "Reactivate", async () => {
+                    await api(`/api/custom-fields/${field.fieldId}/options/${option.optionId}/active`, "PATCH", { isActive: !option.isActive });
+                    await loadProfile();
+                    status("Option updated for every customer. Existing history is retained.");
+                });
+                toggle.setAttribute("aria-label", `${option.isActive ? "Deactivate" : "Reactivate"} option: ${option.label}`);
+                row.append(element("span", option.label + (option.isActive ? "" : " (inactive)")), toggle);
+                details.append(row);
+            }
+            input.placeholder = "New option label";
+            input.maxLength = 200;
+            input.setAttribute("aria-label", `New option for ${field.label}`);
+            input.disabled = !field.isActive;
+            const addButton = action("Add option", async () => {
+                await api(`/api/custom-fields/${field.fieldId}/options`, "POST", { label: input.value, sortOrder: field.options.length + 1 });
+                await loadProfile();
+                status("Option added for every customer.");
+            });
+            addButton.disabled = !field.isActive;
+            add.className = "option-add";
+            add.append(input, addButton);
+            details.append(add);
+            if (!field.isActive)
+                details.append(element("small", "Reactivate this field before adding options."));
+            item.append(details);
+        }
+        $("field-library").append(item);
+    }
+}
+for (const id of ["profiles", "fields", "customers", "activity"])
+    $("nav-" + id).addEventListener("click", () => showSection(id));
+$("field-type").addEventListener("change", updateFieldType);
+updateFieldType();
 $("customer").addEventListener("change", () => {
     $("history").replaceChildren();
     loadProfile().catch(error => status(error.message));
@@ -187,6 +235,7 @@ $("create-field").addEventListener("submit", async (event) => {
         });
         status("Field created for every customer.");
         formElement.reset();
+        updateFieldType();
         await loadProfile();
     }
     catch (error) {
@@ -202,6 +251,7 @@ $("create-customer").addEventListener("submit", async (event) => {
         });
         form.reset();
         await loadCustomers(customer.customerId);
+        showSection("profiles");
         status("Customer created with all global fields available.");
     }
     catch (error) {

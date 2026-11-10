@@ -18,6 +18,9 @@ function harness() {
         get value() {
             return this._value;
         }
+        get selectedOptions() {
+            return this.children.filter(child => child.selected);
+        }
         append(...items) {
             this.children.push(...items);
         }
@@ -77,16 +80,56 @@ function harness() {
                 }
             }]));
     }
+    function respondFields(customer, fields) {
+        const resolve = pending.get(`/api/customers/${customer}/custom-fields`);
+        assert.ok(resolve, 'Expected a pending profile request');
+        resolve(response(fields));
+    }
     return {
         context,
         node,
         pending,
         writes,
         respond,
+        respondFields,
         response
     };
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
+test('section navigation shows only the chosen workspace view', () => {
+    const h = harness();
+    h.context.showSection('fields');
+    assert.equal(h.node('fields').hidden, false);
+    for (const id of ['profiles', 'customers', 'activity'])
+        assert.equal(h.node(id).hidden, true);
+    h.context.showSection('profiles');
+    assert.equal(h.node('profiles').hidden, false);
+    assert.equal(h.node('fields').hidden, true);
+});
+test('multiselect guidance is shown and Save sends only checked options', async () => {
+    const h = harness();
+    h.node('customer').value = 'A';
+    const load = h.context.loadProfile();
+    h.respondFields('A', [{
+        definition: { fieldId: 2, fieldKey: 'education', label: 'Education', fieldType: 'MULTI_SELECT', options: [
+            { optionId: 1, label: 'School', isActive: true },
+            { optionId: 2, label: 'University', isActive: true }
+        ] },
+        value: { selectedOptionIds: [], valueVersion: null }
+    }]);
+    await load;
+    const field = h.node('profile').children[0];
+    assert.ok(JSON.stringify(field).includes('Ctrl'));
+    assert.ok(!JSON.stringify(field).includes('Deactivate field'));
+    const control = field.children.find(child => child.tag === 'select');
+    control.children[1].selected = true;
+    field.children.find(child => child.textContent === 'Save').listeners.click();
+    await flush();
+    assert.deepEqual(h.writes[0].body.selectedOptionIds, [2]);
+    assert.equal(h.writes[0].body.expectedVersion, null);
+    h.respondFields('A', []);
+    await flush();
+});
 test('a stale profile cannot replace the selected customer or route Save to another customer', async () => {
     const h = harness();
     h.node('customer').value = 'A';
