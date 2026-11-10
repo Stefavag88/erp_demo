@@ -32,4 +32,4 @@ Both modules use SQL Server 2022 (16.x), compatibility 160, with separate databa
 
 Both Infrastructure projects reference the small shared CacheEntry<T> component. Repository decorators own catalog snapshots and invalidation policy; business models and rules remain separate. The custom-field demonstration does not feed discount eligibility. SQL and API samples are in [samples/pricing.http](samples/pricing.http) and [samples/customer-custom-fields.http](samples/customer-custom-fields.http).
 
-The supplied specifications under docs/superpowers/specs are historical references; current module guides and design documents incorporate the explicitly agreed changes. [Verification evidence](docs/verification.md) records build, test and review results.
+Shared references cover [testing](docs/testing.md), [SQL design](docs/sql-design.md) and [cache coordination](docs/caching.md).
