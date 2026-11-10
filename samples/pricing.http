@@ -18,11 +18,11 @@ Content-Type: application/json
 
 {"orderId":"ORD-124","customerId":"10000000-0000-4000-8000-019a6a000002","originalAmount":340.00,"currency":"EUR","couponCodes":["WELCOME10"]}
 
-### No discounts: finalAmount 340.00
+### Unassigned customer GUID, no discounts: finalAmount 340.00
 POST {{baseUrl}}/api/pricing/calculate
 Content-Type: application/json
 
-{"orderId":"ORD-125","customerId":"unknown","originalAmount":340.00,"currency":"EUR","couponCodes":[]}
+{"orderId":"ORD-125","customerId":"20000000-0000-4000-8000-000000000001","originalAmount":340.00,"currency":"EUR","couponCodes":[]}
 
 ### Multiple discounts: finalAmount 75.25
 POST {{baseUrl}}/api/pricing/calculate

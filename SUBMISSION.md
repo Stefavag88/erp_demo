@@ -1,6 +1,6 @@
 # ERP assignment submission
 
-The source archive contains both independent .NET 10 modules, unit/integration tests, fresh SQL Server 2022 scripts, HTTP samples, the custom-fields ER diagram and the demo UI. It excludes secrets, Git metadata, caches and build output.
+The source archive contains both independent .NET 10 modules, the shared cache infrastructure, unit/integration tests, fresh SQL Server 2022 scripts, HTTP samples, the custom-fields ER diagram and the demo UI. It excludes secrets, Git metadata, caches and build output. Extract it, open `ERP.sln`, and run the commands below from the extracted `ERP` directory. Git is not required to build or run the submission.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ Run these in separate terminals with the connection-string environment variables
 
 ```powershell
 # Part one
- dotnet run --project src/Discounts/ERP.Discounts.Api -c Release --no-launch-profile --urls http://localhost:5080
+dotnet run --project src/Discounts/ERP.Discounts.Api -c Release --no-launch-profile --urls http://localhost:5080
 # Part two (Development-only fake demo identity, seeded actor 1)
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
 dotnet run --project src/CustomerCustomFields/ERP.CustomerCustomFields.Api -c Release --no-launch-profile --urls http://localhost:5081
@@ -41,7 +41,7 @@ dotnet run --project src/CustomerCustomFields/ERP.CustomerCustomFields.Api -c Re
 
 Open http://localhost:5081 for the interactive customer-fields page. The provided launch profile also uses Development and port 5081 if launched without `--no-launch-profile`. Outside Development, no fake identity is supplied and API calls receive 401 until ERP authentication is integrated.
 
-Use [pricing samples](samples/pricing.http) and [custom-fields samples](samples/customer-custom-fields.http). The discount request with customer10000000-0000-4000-8000-019a6a000001, EUR 340 and WELCOME10 returns finalAmount 280.70, totalDiscount 59.30 and three discounts.
+Use [pricing samples](samples/pricing.http) and [custom-fields samples](samples/customer-custom-fields.http). The discount request with customer `10000000-0000-4000-8000-019a6a000001`, EUR 340 and WELCOME10 returns finalAmount 280.70, totalDiscount 59.30 and three discounts.
 
 ## Verify
 
@@ -62,11 +62,11 @@ Configured SQL tests require engine 16; a wrong version fails clearly. Fixtures 
 
 ## Agreed scope
 
-Each module retains separate Domain/Application/Infrastructure/Api projects and its own database. All runtime data access uses stored procedures with Dapper. SQL enum columns are numeric; customer IDs are regular application-generated GUIDs with no external generator, NEWSEQUENTIALID or UUIDv7 requirement. Random GUID clustering is accepted. No triggers, EF or migrations are used.
+Each module retains separate Domain/Application/Infrastructure/Api projects and its own database. Both Infrastructure projects reference `src/Shared/ERP.Infrastructure` for `CacheEntry<T>`; business models and rules remain separate. All runtime data access uses stored procedures with Dapper and database-only row mappings. API handlers delegate to application services. SQL enum columns are numeric; customer IDs are regular application-generated GUIDs with no external generator, NEWSEQUENTIALID or UUIDv7 requirement. Random GUID clustering is accepted. No triggers, EF or migrations are used.
 
-Customer custom fields provide global definitions/options, per-customer values, soft activation, atomic whole-selection changes, explicit version conflicts and temporal old/new history with actor and UTC operation time. [The ER diagram and decisions](docs/customer-custom-fields/design.md) explain JSON selection tradeoffs and temporal timestamp limitations. The original supplied specifications are preserved as historical references under docs/superpowers/specs; approved overrides and implementation plans are alongside them.
+Customer custom fields provide global definitions/options, per-customer values, soft activation, atomic whole-selection changes, explicit version conflicts and temporal old/new history with actor and UTC operation time. SQL reads the history table directly and combines earlier versions with a captured current row; the application service builds consecutive transitions in C#. This includes zero-duration versions and preserves a consistent version boundary during concurrent writes. [The ER diagram and decisions](docs/customer-custom-fields/design.md) explain JSON selection tradeoffs and temporal timestamp limitations. The original supplied specifications are preserved as historical references under docs/superpowers/specs; approved overrides and implementation plans are alongside them.
 
-Discounts retain an external dummy segment provider, a 60-second promotion-definition cache and bounded SQL read retries. Custom-field demo segments do not feed discounts. No customer-field caching or automatic write retries are added. The two modules do not require messaging, distributed infrastructure or cloud services.
+Discounts retain an external dummy segment provider, a 60-second promotion-definition cache and bounded SQL read retries. Custom-field demo segments do not feed discounts. The shared customer-field definition/option catalog also uses cache-aside with a 60-second absolute expiration. Successful metadata changes invalidate both active-only and include-inactive catalogs; customer values, profiles and history remain uncached. Both singleton repository decorators directly own `CacheEntry<T>` instances. The helper uses atomic state transitions and asynchronous signals without explicit monitor locks or semaphores. Invalidation is local to one API process. Automatic write retries are absent. The two modules do not require messaging, distributed infrastructure or cloud services.
 
 
 For the UI regression tests, with Node.js installed, run `node --test tests/CustomerCustomFields/UI/profile.test.cjs`. No npm installation is needed; Node.js is not required to run either API.
