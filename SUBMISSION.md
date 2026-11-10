@@ -1,6 +1,6 @@
 # ERP assignment submission
 
-The source archive contains both independent .NET 10 modules, the shared cache infrastructure, unit/integration tests, fresh SQL Server 2022 scripts, HTTP samples, both module ER diagrams (Mermaid and standalone SVG) and the demo UI. It excludes secrets, Git metadata, caches and build output. Extract it, open `ERP.sln`, and run the commands below from the extracted `ERP` directory. Git is not required to build or run the submission.
+This repository is the assignment deliverable. It contains both independent .NET 10 modules, the shared cache infrastructure, unit/integration tests, fresh SQL Server 2022 scripts, HTTP samples, both module ER diagrams (Mermaid and standalone SVG) and the demo UI. Clone the repository, open `ERP.sln`, and run the commands below from the solution root. Local secrets, caches and build output are excluded by `.gitignore`.
 
 ## Prerequisites
 
