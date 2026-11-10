@@ -2,7 +2,7 @@
 
 This .NET 10 solution contains two independent ERP assignment modules. Each has separate Domain, Application, Infrastructure and Api projects, SQL Server 2022 scripts, executable APIs and automated tests.
 
-Start with [SUBMISSION.md](SUBMISSION.md) for prerequisites, database provisioning, connection strings, startup commands and verification.
+Start with [SUBMISSION.md](SUBMISSION.md#native-sql-server-setup-powershell) for native SQL Server 2022/SSMS setup, prerequisites, database provisioning, connection strings, startup commands and verification. Docker is an optional alternative.
 
 | Module | Guide and walkthrough | Design and ER diagram | Standalone ER diagram |
 |---|---|---|---|

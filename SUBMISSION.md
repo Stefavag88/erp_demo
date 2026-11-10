@@ -6,7 +6,42 @@ The source archive contains both independent .NET 10 modules, the shared cache i
 
 .NET 10 SDK, SQL Server 2022 (16.x) and `sqlcmd` on PATH. Use a native 2022 instance with Windows authentication or the supplied Docker Compose service. SQL Server 2019 LocalDB is not supported. Both databases use compatibility 160.
 
-## Docker setup (PowerShell)
+## Native SQL Server setup (PowerShell)
+
+The APIs and deployment scripts default to `(localdb)\ERP2022` with Windows Authentication. This is an isolated SQL Server 2022 LocalDB instance; an existing `(localdb)\MSSQLLocalDB` instance may still use SQL Server 2019 even when 2022 is installed. No SQL password is needed.
+
+If `ERP2022` does not exist yet, create it once using the version-16 utility:
+
+```powershell
+$localDb = "$env:ProgramFiles\Microsoft SQL Server\160\Tools\Binn\SqlLocalDB.exe"
+& $localDb create ERP2022 16.0 -s
+```
+
+On later runs, start it with `& $localDb start ERP2022`. From the solution root, provision fresh databases and build:
+
+```powershell
+.\sql\discounts\Deploy.ps1
+.\sql\customer-custom-fields\Deploy.ps1
+
+dotnet restore ERP.sln
+dotnet build ERP.sln -c Release
+```
+
+In SSMS, connect to **Database Engine**, server **`(localdb)\ERP2022`**, using **Windows Authentication**. Refresh Databases to see `ERPDiscounts` and `ERPCustomerCustomFields`. The scripts verify engine 16 and require fresh database names. If a name already exists, choose a fresh `-DatabaseName` and use that same name in its API connection string.
+
+For a full native SQL Server instance, use the exact server name from SSMS instead: `.` selects a local default instance; a named instance might be `.\SQLEXPRESS` or `YOUR-PC\INSTANCE`. Pass it with `-Server` to each deployment script and override both connection strings, for example:
+
+```powershell
+$server = 'YOUR-PC\INSTANCE'
+$env:ConnectionStrings__Discounts = "Server=$server;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;"
+$env:ConnectionStrings__CustomerCustomFields = "Server=$server;Database=ERPCustomerCustomFields;Integrated Security=true;TrustServerCertificate=true;"
+```
+
+Those environment overrides must be available in each API terminal. For the default ERP2022 setup, appsettings already contains the correct connection strings. Remove any old connection-string environment overrides or user secrets that still point at Docker. In Visual Studio, launch customer fields with its Development profile for the demo identity.
+
+To execute SQL scripts through SSMS instead of PowerShell, open a query on the target server, enable **Query > SQLCMD Mode**, and add `:setvar DatabaseName ERPDiscounts` or `:setvar DatabaseName ERPCustomerCustomFields` before executing each module's numbered scripts in order. No Docker command is needed for native setup.
+
+## Optional Docker setup (PowerShell)
 
 Set a strong **local** password in your shell; do not commit it. Alternatively copy `.env.example` to `.env`, replace its placeholder and read that same value into the environment. `.env` is ignored.
 
@@ -15,8 +50,8 @@ $env:MSSQL_SA_PASSWORD = '<choose-a-strong-local-password>'
 docker compose up -d sqlserver
 # Wait for SQL Server to accept connections, then:
 $env:SQLCMDPASSWORD = $env:MSSQL_SA_PASSWORD
-.\sql\discounts\Deploy.ps1 -UserName sa
-.\sql\customer-custom-fields\Deploy.ps1 -UserName sa
+.\sql\discounts\Deploy.ps1 -Server '127.0.0.1,1433' -UserName sa
+.\sql\customer-custom-fields\Deploy.ps1 -Server '127.0.0.1,1433' -UserName sa
 $env:ConnectionStrings__Discounts = "Server=127.0.0.1,1433;Database=ERPDiscounts;User ID=sa;Password=$env:MSSQL_SA_PASSWORD;TrustServerCertificate=true;"
 $env:ConnectionStrings__CustomerCustomFields = "Server=127.0.0.1,1433;Database=ERPCustomerCustomFields;User ID=sa;Password=$env:MSSQL_SA_PASSWORD;TrustServerCertificate=true;"
 dotnet restore ERP.sln
@@ -29,7 +64,7 @@ Schema scripts assume fresh databases. If either default name is already in use,
 
 ## Start each module
 
-Run these in separate terminals with the connection-string environment variables above available in each:
+Run these in separate terminals with the chosen native or Docker connection strings available in each:
 
 ```powershell
 # Part one
@@ -51,7 +86,8 @@ Remove-Item Env:ERP_DISCOUNTS_TEST_CONNECTION -ErrorAction SilentlyContinue
 Remove-Item Env:ERP_CUSTOM_FIELDS_TEST_CONNECTION -ErrorAction SilentlyContinue
 dotnet test ERP.sln -c Release
 # All SQL tests require rights to create/drop their own isolated databases
-$testConnection = "Server=127.0.0.1,1433;User ID=sa;Password=$env:MSSQL_SA_PASSWORD;TrustServerCertificate=true;"
+$testConnection = 'Server=(localdb)\ERP2022;Integrated Security=true;TrustServerCertificate=true;' # Native Windows Authentication
+# For Docker/SQL Authentication, use your SQL-auth connection string instead.
 $env:ERP_DISCOUNTS_TEST_CONNECTION = $testConnection
 $env:ERP_CUSTOM_FIELDS_TEST_CONNECTION = $testConnection
 dotnet test ERP.sln -c Release

@@ -1,6 +1,6 @@
 # Customer custom-fields demonstration
 
-See [combined setup](../../SUBMISSION.md) for SQL Server 2022 provisioning and API startup on port 5081. [The ER diagram](design.md) describes relationships and tradeoffs. Native SQL and Docker SQL are supported; environment variables configure connections. Never commit a real password.
+See [combined setup](../../SUBMISSION.md) for SQL Server 2022 provisioning and API startup on port 5081. [The ER diagram](design.md) describes relationships and tradeoffs. The default connection uses `(localdb)\ERP2022` with Windows Authentication. Other native or Docker servers can be selected with connection-string environment overrides. Never commit a real password.
 
 ## Walkthrough
 

@@ -13,13 +13,12 @@ From the solution root in PowerShell:
 ```powershell
 dotnet restore ERP.sln
 dotnet build ERP.sln
-# For SQL Server 2022, if needed:
-docker compose up -d sqlserver
+# Start the SQL Server 2022 LocalDB instance first; see SUBMISSION.md.
 .\sql\discounts\Deploy.ps1
 dotnet run --project src/Discounts/ERP.Discounts.Api --no-launch-profile --urls http://localhost:5080
 ```
 
-appsettings.json provides a local default under ConnectionStrings:Discounts: `Server=127.0.0.1,1433;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;`. It uses the current Windows identity and contains no password. Use SQL Server 2022 (16.x) at compatibility 160. Run the SQL scripts first to create and seed that database; the API does not create it automatically. The key is Discounts because Program.cs reads GetConnectionString("Discounts"), rather than DefaultConnection.
+appsettings.json provides a local default under ConnectionStrings:Discounts: `Server=(localdb)\ERP2022;Database=ERPDiscounts;Integrated Security=true;TrustServerCertificate=true;`. It uses the current Windows identity and contains no password. Use SQL Server 2022 (16.x) at compatibility 160. Run the SQL scripts first to create and seed that database; the API does not create it automatically. The key is Discounts because Program.cs reads GetConnectionString("Discounts"), rather than DefaultConnection.
 
 For another server/database, override it with `$env:ConnectionStrings__Discounts = 'your connection string'` or .NET user secrets. TrustServerCertificate and the script's sqlcmd -C flag are local-demo conveniences. For a remote instance configure a validated server certificate. Keep actual passwords out of appsettings and Git. The API requires a nonblank ConnectionStrings:Discounts value at startup and exposes one pricing endpoint.
 
@@ -36,7 +35,7 @@ Deploy.ps1 defaults to database ERPDiscounts and Windows integrated authenticati
 To run manually:
 
 ```powershell
-sqlcmd -S '127.0.0.1,1433' -E -C -b -v DatabaseName=ERPDiscounts -i sql/discounts/000_create_database.sql
+sqlcmd -S '(localdb)\ERP2022' -E -C -b -v DatabaseName=ERPDiscounts -i sql/discounts/000_create_database.sql
 # Repeat this command for 001, 002, 003 and 004 in order.
 ```
 
@@ -131,7 +130,7 @@ dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category!=S
 Run all SQL Server tests (including seeded HTTP) explicitly:
 
 ```powershell
-$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=127.0.0.1,1433;Integrated Security=true;TrustServerCertificate=true'
+$env:ERP_DISCOUNTS_TEST_CONNECTION = 'Server=(localdb)\ERP2022;Integrated Security=true;TrustServerCertificate=true'
 dotnet test tests/Discounts/ERP.Discounts.IntegrationTests --filter 'Category=SqlServer'
 # Or run every unit/mapping/API/SQL test:
 dotnet test ERP.sln
