@@ -60,6 +60,52 @@ BEGIN
         ChangedByUserId INT,
         ChangedAtUtc DATETIME2 (7),
         Changed BIT);
+    -- Validate and canonicalize the input before taking metadata/value locks.
+    -- Field type, option ownership and active-state checks still run in the transaction.
+    IF @SelectedOptionIdsJson IS NULL
+        BEGIN
+            IF DATALENGTH(@TextValue) > 4000
+                THROW 51000, 'Text fields accept at most 2000 characters and no selection array.', 1;
+            IF DATALENGTH(@TextValue) = 0
+                SET @TextValue = NULL;
+        END
+    ELSE
+        BEGIN
+            IF @TextValue IS NOT NULL
+               OR ISJSON(@SelectedOptionIdsJson, ARRAY) <> 1
+               OR DATALENGTH(@SelectedOptionIdsJson) > 8000
+                THROW 51000, 'Multi-select requires an array of numeric option IDs and no text.', 1;
+            -- Retain token types and raw text: JSON strings, fractions and exponents
+            -- must not become valid IDs through an implicit numeric conversion.
+            DECLARE @Selection TABLE (
+                JsonType INT,
+                RawValue NVARCHAR (MAX),
+                Id INT);
+            INSERT @Selection (JsonType, RawValue, Id)
+            SELECT type,
+                   value,
+                   TRY_CONVERT (INT, value)
+            FROM OPENJSON (@SelectedOptionIdsJson);
+            IF EXISTS (SELECT 1
+                       FROM @Selection
+                       WHERE JsonType <> 2
+                             OR RawValue COLLATE Latin1_General_100_BIN2 LIKE '%[^0-9]%'
+                             OR Id IS NULL
+                             OR Id <= 0)
+                THROW 51000, 'Option IDs must be positive INT tokens.', 1;
+            IF EXISTS (SELECT Id
+                       FROM @Selection
+                       GROUP BY Id
+                       HAVING COUNT(*) > 1)
+                THROW 51000, 'Duplicate option IDs are not allowed.', 1;
+            INSERT @Ids (Id)
+            SELECT Id
+            FROM @Selection;
+            SELECT @SelectedOptionIdsJson = N'[' + COALESCE (STRING_AGG(CONVERT (NVARCHAR (MAX), Id), N',') WITHIN GROUP (ORDER BY Id), N'') + N']'
+            FROM @Ids;
+            IF DATALENGTH(@SelectedOptionIdsJson) > 8000
+                THROW 51000, 'Selection exceeds 4000 characters.', 1;
+        END
     BEGIN TRY
         BEGIN TRANSACTION;
         -- Consistent lock order: definition -> customer -> options -> value key. HOLDLOCK
@@ -83,33 +129,12 @@ BEGIN
         IF @Type = 1
             BEGIN
                 IF @SelectedOptionIdsJson IS NOT NULL
-                   OR DATALENGTH(@TextValue) > 4000
                     THROW 51000, 'Text fields accept at most 2000 characters and no selection array.', 1;
-                IF DATALENGTH(@TextValue) = 0
-                    SET @TextValue = NULL;
             END
         ELSE
             BEGIN
-                IF @TextValue IS NOT NULL
-                   OR @SelectedOptionIdsJson IS NULL
-                   OR ISJSON(@SelectedOptionIdsJson, ARRAY) <> 1
-                   OR DATALENGTH(@SelectedOptionIdsJson) > 8000
+                IF @SelectedOptionIdsJson IS NULL
                     THROW 51000, 'Multi-select requires an array of numeric option IDs and no text.', 1;
-                IF EXISTS (SELECT 1
-                           FROM OPENJSON (@SelectedOptionIdsJson)
-                           WHERE type <> 2
-                                 OR value COLLATE Latin1_General_100_BIN2 LIKE '%[^0-9]%'
-                                 OR TRY_CONVERT (INT, value) IS NULL
-                                 OR TRY_CONVERT (INT, value) <= 0)
-                    THROW 51000, 'Option IDs must be positive INT tokens.', 1;
-                IF EXISTS (SELECT CONVERT (INT, value)
-                           FROM OPENJSON (@SelectedOptionIdsJson)
-                           GROUP BY CONVERT (INT, value)
-                           HAVING COUNT(*) > 1)
-                    THROW 51000, 'Duplicate option IDs are not allowed.', 1;
-                INSERT @Ids
-                SELECT CONVERT (INT, value)
-                FROM OPENJSON (@SelectedOptionIdsJson);
                 IF EXISTS (SELECT 1
                            FROM @Ids AS i
                                 LEFT OUTER JOIN
@@ -118,10 +143,6 @@ BEGIN
                                    AND o.FieldId = @FieldId
                            WHERE o.OptionId IS NULL)
                     THROW 51000, 'An option does not belong to this field.', 1;
-                SELECT @SelectedOptionIdsJson = N'[' + COALESCE (STRING_AGG(CONVERT (NVARCHAR (MAX), Id), N',') WITHIN GROUP (ORDER BY Id), N'') + N']'
-                FROM @Ids;
-                IF DATALENGTH(@SelectedOptionIdsJson) > 8000
-                    THROW 51000, 'Selection exceeds 4000 characters.', 1;
             END
         SELECT @Version = ValueVersion,
                @OldText = TextValue,

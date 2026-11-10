@@ -32,19 +32,33 @@ BEGIN
     IF @OptionsJson IS NULL
        OR ISJSON(@OptionsJson, ARRAY) <> 1
         THROW 51000, 'Options must be an array.', 1;
+    -- Materialize once; reuse the parsed options for validation and insertion.
+    -- Keep extracted strings unbounded until length checks have completed.
+    DECLARE @Options TABLE (
+        JsonType INT,
+        Label NVARCHAR (MAX),
+        SortOrder NVARCHAR (MAX));
+    INSERT @Options (JsonType, Label, SortOrder)
+    SELECT j.type,
+           o.Label,
+           o.SortOrder
+    FROM OPENJSON (@OptionsJson) AS j
+         OUTER APPLY OPENJSON (CASE WHEN j.type = 5 THEN j.value ELSE N'{}' END)
+         WITH (Label NVARCHAR (MAX) '$.label', SortOrder NVARCHAR (MAX) '$.sortOrder') AS o;
     IF @FieldType = 1
        AND EXISTS (SELECT 1
-                   FROM OPENJSON (@OptionsJson))
+                   FROM @Options)
         THROW 51000, 'Text fields cannot have options.', 1;
     IF EXISTS (SELECT 1
-               FROM OPENJSON (@OptionsJson)
-               WHERE type <> 5)
+               FROM @Options
+               WHERE JsonType <> 5)
         THROW 51000, 'Each option must be an object.', 1;
     IF EXISTS (SELECT 1
-               FROM OPENJSON (@OptionsJson) AS j
-               WHERE dbo.CustomField_IsBlank(JSON_VALUE(j.value, '$.label')) = 1
-                     OR DATALENGTH(JSON_VALUE(j.value, '$.label')) > 400
-                     OR TRY_CONVERT (INT, JSON_VALUE(j.value, '$.sortOrder')) IS NULL)
+               FROM @Options
+               WHERE dbo.CustomField_IsBlank(Label) = 1
+                     OR DATALENGTH(Label) > 400
+                     OR DATALENGTH(SortOrder) > 8000
+                     OR TRY_CONVERT (INT, SortOrder) IS NULL)
         THROW 51000, 'Invalid option label or sort order.', 1;
     BEGIN TRY
         BEGIN TRANSACTION;
@@ -61,9 +75,9 @@ BEGIN
         DECLARE @FieldId AS INT = CONVERT (INT, SCOPE_IDENTITY());
         INSERT dbo.CustomFieldOption (FieldId, Label, SortOrder)
         SELECT @FieldId,
-               JSON_VALUE(value, '$.label'),
-               CONVERT (INT, JSON_VALUE(value, '$.sortOrder'))
-        FROM OPENJSON (@OptionsJson);
+               Label,
+               CONVERT (INT, SortOrder)
+        FROM @Options;
         COMMIT TRANSACTION;
         SELECT FieldId,
                FieldKey,

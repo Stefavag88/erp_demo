@@ -31,3 +31,12 @@ Discount lookup keys already match the implemented workload: customer/list assig
 Customer profiles and value writes use the clustered `(CustomerId, FieldId)` value key. The existing reverse field index remains available for ownership/FK access. We did not add speculative actor or low-selectivity active-flag indexes for workflows the API does not expose. The application still performs one atomic value change per transaction, and C# still constructs history transitions.
 
 The review follows SQL Server's [index design guidance](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-index-design-guide?view=sql-server-ver16): match indexes to real predicates/order, consider covering payloads, measure plans and balance read gains against write/storage costs.
+
+## Procedure simplification follow-up
+
+- `CustomField_Create` materializes the option array and its properties once, retaining JSON token types and unbounded strings until validation. Validation and insertion reuse those rows rather than repeatedly parsing the input. The previous 4,000-character scalar limit for sort-order input remains enforced before conversion.
+- `CustomerCustomField_SetValue` parses incoming selection tokens once, validates types/positive integer syntax/duplicates, and builds canonical ordered JSON before opening its transaction. Input-only text validation also runs before the transaction. Database-dependent field type, ownership, activation and version checks retain their existing locking and transaction boundaries. Invalid payload errors can now precede missing-resource errors when both are present.
+- `usp_Promotion_GetDefinitions` no longer requests ordering for either catalog result set. Repository mapping uses identities, and the engine orders eligible discounts. Materialization and deduplication remain intact so both result sets still use the same selection.
+- History reads, exact text comparison and the narrow history index remain unchanged. No migration or extra index is needed. Reduced parsing and lock duration are the intended benefits; these changes do not establish a measured end-to-end speedup.
+
+A SQL regression holds an exclusive field-definition lock and verifies that a malformed selection returns validation error `51000` without waiting for that lock. Before the refactor it timed out (`-2`). Additional SQL-boundary checks cover malformed option shapes, oversized labels and sort-order overflow without persisting a definition or options.

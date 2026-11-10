@@ -37,6 +37,37 @@ public class DefinitionProcedureTests
     }
 
     [SqlServerFact]
+    public async Task Option_parsing_rejects_invalid_shapes_and_oversized_values_without_creating_a_field()
+    {
+        await using var db = await SqlServerFixture.CreateAsync(4);
+        await Setup(db);
+        using var connection = new SqlConnection(db.ConnectionString);
+        foreach (var json in new[]
+        {
+            "[null]",
+            "[1]",
+            "[\"option\"]",
+            "[[]]",
+            "[{}]",
+            "[{\"label\":{},\"sortOrder\":1}]",
+            "[{\"label\":\"Option\",\"sortOrder\":{}}]",
+            "[{\"label\":\"Option\",\"sortOrder\":2147483648}]",
+            "[{\"label\":\"" + new string('x', 201) + "\",\"sortOrder\":1}]",
+            "[{\"label\":\"" + new string('x', 5000) + "\",\"sortOrder\":1}]",
+            "[{\"label\":\"Option\",\"sortOrder\":\"1" + new string(' ', 4000) + "\"}]"
+        })
+        {
+            var exception = await Assert.ThrowsAsync<SqlException>(() => connection.ExecuteAsync(
+                "dbo.CustomField_Create", new { FieldKey = "invalid", Label = "Invalid", FieldType = (byte)2, ActorUserId = 1, OptionsJson = json },
+                commandType: CommandType.StoredProcedure));
+            Assert.Equal(51000, exception.Number);
+        }
+
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.CustomFieldDefinition;"));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.CustomFieldOption;"));
+    }
+
+    [SqlServerFact]
     public async Task Options_can_be_added_and_soft_deactivated_without_deletion()
     {
         await using var db = await SqlServerFixture.CreateAsync(4);

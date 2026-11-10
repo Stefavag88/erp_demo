@@ -29,8 +29,9 @@ BEGIN
     INTO #Candidates
     FROM dbo.Promotions p
     LEFT JOIN dbo.PromotionSegmentRates r ON r.PromotionId=p.Id;
-    SELECT DISTINCT Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc FROM #Candidates ORDER BY Id;
-    SELECT Id AS PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value FROM #Candidates WHERE SegmentCode IS NOT NULL ORDER BY Id,SegmentCode;
+    -- Consumers group by identity; the discount engine applies execution ordering.
+    SELECT DISTINCT Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc FROM #Candidates;
+    SELECT Id AS PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value FROM #Candidates WHERE SegmentCode IS NOT NULL;
 END;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Coupon_GetEligible

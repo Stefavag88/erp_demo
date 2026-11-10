@@ -134,6 +134,24 @@ public class ValueProcedureTests
     }
 
     [SqlServerFact]
+    public async Task Invalid_selection_is_rejected_without_waiting_for_metadata_locks()
+    {
+        await using var db = await Database();
+        using var metadata = new SqlConnection(db.ConnectionString);
+        using var writer = new SqlConnection(db.ConnectionString);
+        await metadata.OpenAsync();
+        using var transaction = metadata.BeginTransaction();
+        await metadata.ExecuteAsync("UPDATE dbo.CustomFieldDefinition SET IsActive=IsActive WHERE FieldId=2;", transaction: transaction);
+
+        var exception = await Assert.ThrowsAsync<SqlException>(() => writer.ExecuteAsync(
+            new CommandDefinition("dbo.CustomerCustomField_SetValue",
+                new { CustomerId = Guid.Parse(CustomerA), FieldId = 2, TextValue = (string?)null, SelectedOptionIdsJson = "[1e0]", ExpectedVersion = (long?)null, ActorUserId = 1 },
+                commandTimeout: 2, commandType: System.Data.CommandType.StoredProcedure)));
+
+        Assert.Equal(51000, exception.Number);
+    }
+
+    [SqlServerFact]
     public async Task Concurrent_first_assignments_allow_exactly_one_writer()
     {
         await using var db = await Database();
