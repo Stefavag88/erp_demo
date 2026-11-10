@@ -18,6 +18,60 @@ public class ValueProcedureTests
     internal static string Set(int field, string text, string json, string version) => $"EXEC dbo.CustomerCustomField_SetValue '{CustomerA}',{field},{text},{json},{version},1;";
 
     [SqlServerFact]
+    public async Task History_includes_zero_duration_versions_and_the_current_value()
+    {
+        await using var db = await Database();
+        // One outer transaction deterministically creates zero-duration temporal versions.
+        await db.SqlAsync("BEGIN TRANSACTION;"
+            + Set(1, "N'A'", "NULL", "NULL")
+            + Set(1, "N'B'", "NULL", "1")
+            + Set(1, "N'C'", "NULL", "2")
+            + "COMMIT TRANSACTION;");
+        using var connection = new SqlConnection(db.ConnectionString);
+        Assert.Equal(2, await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM history.CustomerFieldValueHistory WHERE FieldId=1 AND ValidFrom=ValidTo;"));
+
+        var versions = (await connection.QueryAsync("dbo.CustomerCustomField_GetHistory",
+            new { CustomerId = Guid.Parse(CustomerA), FieldId = 1 }, commandType: System.Data.CommandType.StoredProcedure)).ToArray();
+
+        Assert.Equal(3, versions.Length);
+        Assert.Equal(new long[] { 1, 2, 3 }, versions.Select(row => (long)row.ValueVersion));
+        Assert.Equal(new[] { "A", "B", "C" }, versions.Select(row => (string)row.TextValue));
+    }
+
+    [SqlServerFact]
+    public async Task History_remains_a_contiguous_version_sequence_during_concurrent_writes()
+    {
+        await using var db = await Database();
+        await db.SqlAsync(Set(1, "N'value1'", "NULL", "NULL"));
+        using var writer = new SqlConnection(db.ConnectionString);
+        using var reader = new SqlConnection(db.ConnectionString);
+        await writer.OpenAsync();
+        await reader.OpenAsync();
+
+        async Task Write()
+        {
+            for (var version = 2; version <= 100; version++)
+                await writer.ExecuteAsync("dbo.CustomerCustomField_SetValue",
+                    new { CustomerId = Guid.Parse(CustomerA), FieldId = 1, TextValue = "value" + version, SelectedOptionIdsJson = (string?)null, ExpectedVersion = version - 1, ActorUserId = 1 },
+                    commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        async Task Read()
+        {
+            for (var i = 0; i < 100; i++)
+            {
+                var versions = (await reader.QueryAsync("dbo.CustomerCustomField_GetHistory",
+                    new { CustomerId = Guid.Parse(CustomerA), FieldId = 1 }, commandType: System.Data.CommandType.StoredProcedure)).ToArray();
+                Assert.NotEmpty(versions);
+                Assert.Equal(Enumerable.Range(1, versions.Length).Select(version => (long)version), versions.Select(row => (long)row.ValueVersion));
+                Assert.All(versions, row => Assert.Equal("value" + row.ValueVersion, (string)row.TextValue));
+            }
+        }
+
+        await Task.WhenAll(Write(), Read());
+    }
+
+    [SqlServerFact]
     public async Task Text_history_preserves_consecutive_exact_changes_and_noops()
     {
         await using var db = await Database();
@@ -29,10 +83,9 @@ public class ValueProcedureTests
         using var connection = new SqlConnection(db.ConnectionString);
         var history = (await connection.QueryAsync("dbo.CustomerCustomField_GetHistory", new { CustomerId = Guid.Parse(CustomerA), FieldId = 1 }, commandType: System.Data.CommandType.StoredProcedure)).ToArray();
         Assert.Equal(3, history.Length);
-        Assert.Null((string? )history[0].OldTextValue);
-        Assert.Equal("A", (string)history[1].OldTextValue);
-        Assert.Equal("a ", (string)history[1].NewTextValue);
-        Assert.Null((string? )history[2].NewTextValue);
+        Assert.Equal("A", (string)history[0].TextValue);
+        Assert.Equal("a ", (string)history[1].TextValue);
+        Assert.Null((string? )history[2].TextValue);
         Assert.All(history, h =>
         {
             Assert.NotEqual(default, (DateTime)h.ChangedAtUtc);

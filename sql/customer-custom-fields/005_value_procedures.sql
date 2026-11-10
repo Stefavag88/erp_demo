@@ -219,15 +219,42 @@ BEGIN
                    FROM dbo.CustomFieldDefinition
                    WHERE FieldId = @FieldId)
         THROW 51001, 'Field not found.', 1;
+    -- Read the history table directly: FOR SYSTEM_TIME omits zero-duration versions.
+    -- The application derives consecutive transitions from these ordered snapshots.
+    -- Capture the current row once so a concurrent update cannot leave a gap or duplicate.
+    DECLARE @CurrentVersion TABLE (
+        ValueVersion BIGINT NOT NULL,
+        TextValue NVARCHAR (2000) NULL,
+        SelectedOptionIds NVARCHAR (4000) NULL,
+        ChangedAtUtc DATETIME2 (7) NOT NULL,
+        ChangedByUserId INT NOT NULL
+    );
+    INSERT @CurrentVersion
     SELECT ValueVersion,
-           LAG(TextValue) OVER (ORDER BY ValueVersion) AS OldTextValue,
-           TextValue AS NewTextValue,
-           LAG(SelectedOptionIds) OVER (ORDER BY ValueVersion) AS OldSelectedOptionIds,
-           SelectedOptionIds AS NewSelectedOptionIds,
+           TextValue,
+           SelectedOptionIds,
            ChangedAtUtc,
            ChangedByUserId
-    FROM dbo.CustomerFieldValue FOR SYSTEM_TIME ALL
+    FROM dbo.CustomerFieldValue
     WHERE CustomerId = @CustomerId
-          AND FieldId = @FieldId
+          AND FieldId = @FieldId;
+
+    SELECT h.ValueVersion,
+           h.TextValue,
+           h.SelectedOptionIds,
+           h.ChangedAtUtc,
+           h.ChangedByUserId
+    FROM history.CustomerFieldValueHistory AS h
+         CROSS JOIN @CurrentVersion AS c
+    WHERE h.CustomerId = @CustomerId
+          AND h.FieldId = @FieldId
+          AND h.ValueVersion < c.ValueVersion
+    UNION ALL
+    SELECT ValueVersion,
+           TextValue,
+           SelectedOptionIds,
+           ChangedAtUtc,
+           ChangedByUserId
+    FROM @CurrentVersion
     ORDER BY ValueVersion;
 END

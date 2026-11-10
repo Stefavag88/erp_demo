@@ -4,5 +4,23 @@ namespace ERP.CustomerCustomFields.Infrastructure.Data;
 
 public sealed class SqlConnectionFactory(string connectionString)
 {
-    public SqlConnection Create() => new(new SqlConnectionStringBuilder(connectionString) { ConnectRetryCount = 0 }.ConnectionString);
+    private readonly string connectionString = new SqlConnectionStringBuilder(connectionString)
+    {
+        ConnectRetryCount = 0
+    }.ConnectionString;
+
+    public async Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
+    {
+        var connection = new SqlConnection(connectionString);
+        try
+        {
+            await connection.OpenAsync(cancellationToken);
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
+    }
 }

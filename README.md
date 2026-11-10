@@ -7,6 +7,8 @@ This solution contains two independent modules with separate Domain, Application
 
 Both target SQL Server 2022 (16.x), compatibility 160, using separate databases. Customer IDs are regular C# `Guid.NewGuid()` values, SQL `uniqueidentifier` and JSON strings. No external ID generator is used. Persisted enums are numeric. The custom-field demonstration is independent of discount eligibility.
 
+Both Infrastructure projects reference `src/Shared/ERP.Infrastructure` for the small `CacheEntry<T>` component. Repository decorators own their catalog snapshots and invalidation policy; the shared component owns memory-cache lookup, absolute expiration, concurrent-load coordination and safe invalidation. No domain model or business rule is shared between modules.
+
 Start with [SUBMISSION.md](SUBMISSION.md) for combined setup, [the custom-fields guide](docs/customer-custom-fields/README.md) for the second API and [its ER diagram](docs/customer-custom-fields/design.md). Discount-specific behavior and details follow below.
 
 ## Discount module
@@ -166,7 +168,7 @@ SQL tests exercise CHECK/foreign-key constraints, TVP/allow-lists, repeatable se
 
 Customer segmentation is external information behind Application's ICustomerSegmentProvider. The API registers an Infrastructure DummyCustomerSegmentProvider: 10000000-0000-4000-8000-019a6a000001 maps to GOLD, 10000000-0000-4000-8000-019a6a000002 to SILVER, 10000000-0000-4000-8000-019a6a000003 to BRONZE, and other IDs return no segment. These fixed demo assignments are isolated in that adapter; the application contains no customer classification logic and performs no segment database lookup. PromotionSegmentRates remains in SQL because promotion rates are discount rules. Replacing the dummy with another source requires implementing the same interface and changing DI registration; no external client is implemented here.
 
-Local price-list assignments remain discount-domain facts with no external Customers FK. OrderId is correlation only. This assignment has no result persistence, coupon reservation/redemption, line allocations, tax/shipping, auth, external calls, message bus or background workers. Caching is limited to the promotion catalog described below. Production requirements would need a separate design rather than infrastructure added speculatively here.
+Local price-list assignments remain discount-domain facts with no external Customers FK. OrderId is correlation only. This assignment has no result persistence, coupon reservation/redemption, line allocations, tax/shipping, auth, external calls, message bus or background workers. Discount caching is limited to the promotion catalog described below. Production requirements would need a separate design rather than infrastructure added speculatively here.
 
 This segment-provider boundary supersedes the original specification's local CustomerDiscountProfiles design by explicit user agreement; see [the scope decision](docs/decisions/2026-11-08-external-customer-segments.md). Provisioning scripts create no profile table or segment procedure and seed no profile assignments. As with other schema changes, use a fresh database containing the current schema.
 
@@ -180,13 +182,15 @@ The approved [cache decision](docs/decisions/2026-11-08-promotion-definition-cac
 PromotionDiscountProvider -> CachedPromotionRepository -> DapperPromotionRepository -> SQL Server
 ```
 
-The API registers IMemoryCache and a singleton decorator. A hit returns an immutable catalog snapshot without querying SQL; a miss loads through the Dapper repository. One async lock prevents concurrent misses from issuing duplicate loads. Empty successful catalogs are cached; failures and cancelled loads propagate and are not cached. Caller cancellation is also honored on cache hits. Each operation of the singleton Dapper repository opens/disposes its own connection; no SQL connection is retained across requests.
+The API registers IMemoryCache and a singleton decorator. A hit returns an immutable catalog snapshot without querying SQL; a miss loads through the Dapper repository. An atomic compare-and-swap elects one loader per cache state; other readers asynchronously await a completion signal. CacheEntry contains no monitor locks or semaphores. Invalidation replaces the state and wakes waiting readers so they can load fresh data without waiting for a retired load. Empty successful catalogs are cached; failures and cancelled loads propagate and are not cached. Caller cancellation is also honored on cache hits. Each operation of the singleton Dapper repository opens/disposes its own connection; no SQL connection is retained across requests.
 
 The catalog has a **60-second absolute expiration**, measured from successful loading. Hits do not extend its lifetime. Definition edits become visible on a subsequent refresh, eviction or application restart; each API process has its own cache. No invalidation endpoint, background refresh or distributed cache is implemented. The cache never stores PricingResult or resolved per-customer discounts. Price-list, coupon and segment lookups remain uncached.
 
 The repository contract is GetDefinitionsAsync(CancellationToken), backed by dbo.usp_Promotion_GetDefinitions without an AsOfUtc parameter. The query returns all definitions and rate rows, including scheduled, expired and inactive candidates. Keeping their windows in the snapshot allows the provider to enforce start-inclusive/end-exclusive eligibility on each request even while the cache stays warm. Stage-entry amount and customer segment are evaluated each time too. Known time windows remain accurate; administrative changes to those windows/flags/rates can remain stale until refresh.
 
 No settings are needed for the demonstration. Tests named CachedPromotionRepositoryTests advance the cache clock without sleeps to verify expiration, and cover concurrent misses, immutable snapshots, empty results, failure retry and cancellation. SQL-backed tests verify one catalog read across changing request contexts; HTTP tests update a rate and show that the running app retains its snapshot while a second app instance loads the new value.
+
+The customer-field catalog uses the same cache-aside component and 60-second absolute expiration. Its singleton repository decorator directly owns the cache entries, matching the promotion decorator and sharing its state across requests. Successful definition creation, option creation and field/option activation changes invalidate both `includeInactive` variants. Older in-flight reads cannot repopulate invalidated entries. Customer-specific values, profiles and history remain uncached. Invalidation is local to one API process; see [the customer-field design](docs/customer-custom-fields/design.md) for consistency limits.
 
 ## Bounded SQL read retries
 

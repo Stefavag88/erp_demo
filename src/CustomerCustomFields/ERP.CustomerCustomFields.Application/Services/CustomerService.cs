@@ -4,8 +4,11 @@ using ERP.CustomerCustomFields.Application.Repositories;
 
 namespace ERP.CustomerCustomFields.Application.Services;
 
-public sealed class CustomerService(ICustomerRepository repository, ICustomerIdGenerator generator)
+public sealed class CustomerService(ICustomerRepository repository, ICustomerIdGenerator generator) : ICustomerService
 {
+    public Task<IReadOnlyList<Customer>> ListAsync(CancellationToken token)
+        => repository.ListAsync(token);
+
     public Task<Customer> CreateAsync(string name, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Length > 200)

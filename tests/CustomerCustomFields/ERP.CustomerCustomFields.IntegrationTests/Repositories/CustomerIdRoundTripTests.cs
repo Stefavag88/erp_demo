@@ -1,3 +1,4 @@
+using ERP.CustomerCustomFields.Infrastructure.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using ERP.CustomerCustomFields.Infrastructure.Identifiers;
@@ -12,7 +13,7 @@ public class CustomerIdRoundTripTests
     public async Task Application_generated_customer_GUIDs_round_trip()
     {
         await using var db = await SqlServerFixture.CreateAsync(4);
-        var repository = new DapperCustomerRepository(db.ConnectionString);
+        var repository = new DapperCustomerRepository(new SqlConnectionFactory(db.ConnectionString));
         var generator = new CustomerIdGenerator();
         var expected = new List<Guid>();
         for (var i = 0; i < 20; i++)

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../ERP.Discounts.Application/ERP.Discounts.Application.csproj" />
+    <ProjectReference Include="../../Shared/ERP.Infrastructure/ERP.Infrastructure.csproj" />
 
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />

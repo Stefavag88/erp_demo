@@ -1,48 +1,24 @@
 using ERP.Discounts.Application.Repositories;
+using ERP.Infrastructure.Caching;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace ERP.Discounts.Infrastructure.Caching;
 
 public sealed class CachedPromotionRepository(IPromotionRepository inner, IMemoryCache cache) : IPromotionRepository, IDisposable
 {
-    private readonly object cacheKey = new();
-    private readonly SemaphoreSlim _refreshLock = new(1, 1);
-    private static readonly TimeSpan _cacheTtl = TimeSpan.FromSeconds(60);
+    private readonly CacheEntry<IReadOnlyList<PromotionDefinition>> _catalog = new(cache, TimeSpan.FromSeconds(60));
 
-    public async Task<IReadOnlyList<PromotionDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (cache.TryGetValue(cacheKey, out IReadOnlyList<PromotionDefinition>? existing) && existing is not null)
-            return existing;
-
-        await _refreshLock.WaitAsync(cancellationToken);
-        try
+    public Task<IReadOnlyList<PromotionDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken)
+        => _catalog.GetAsync(async token =>
         {
-            if (cache.TryGetValue(cacheKey, out existing) && existing is not null)
-                return existing;
-
-            var definitions = await inner.GetDefinitionsAsync(cancellationToken)
+            var definitions = await inner.GetDefinitionsAsync(token)
                 ?? throw new InvalidOperationException("Promotion repository returned a null catalog.");
 
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var snapshot = definitions.Select(d => d with
+            return definitions.Select(definition => definition with
             {
-                SegmentRates = d.SegmentRates.ToArray().AsReadOnly()
+                SegmentRates = definition.SegmentRates.ToArray().AsReadOnly()
             }).ToArray().AsReadOnly();
+        }, cancellationToken);
 
-            cache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = _cacheTtl
-            });
-
-            return snapshot;
-        }
-        finally
-        {
-            _refreshLock.Release();
-        }
-    }
-
-    public void Dispose() => _refreshLock.Dispose();
+    public void Dispose() => _catalog.Dispose();
 }

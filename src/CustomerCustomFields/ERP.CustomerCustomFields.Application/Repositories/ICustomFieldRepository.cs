@@ -19,5 +19,6 @@ public interface ICustomFieldRepository
 
     Task<CustomerFieldWriteResult> SetValueAsync(SetFieldValueCommand command, CancellationToken token);
 
-    Task<IReadOnlyList<FieldTransition>> GetHistoryAsync(Guid customerId, int fieldId, CancellationToken token);
+    // Returns stored snapshots in ascending ValueVersion order, including the current value.
+    Task<IReadOnlyList<FieldValueVersion>> GetHistoryAsync(Guid customerId, int fieldId, CancellationToken token);
 }
