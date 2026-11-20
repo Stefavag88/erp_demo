@@ -8,8 +8,8 @@ namespace ERP.Discounts.Infrastructure.Repositories;
 
 public sealed class DapperPromotionRepository(SqlConnectionFactory connections, SqlReadRetryPolicy retry) : IPromotionRepository
 {
-    public Task<IReadOnlyList<PromotionDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken)
-        => retry.ExecuteAsync<IReadOnlyList<PromotionDefinition>>(async token =>
+    public Task<IReadOnlyList<PromotionCandidate>> GetCandidatesAsync(CancellationToken cancellationToken)
+        => retry.ExecuteAsync<IReadOnlyList<PromotionCandidate>>(async token =>
         {
             await using var connection = await connections.OpenAsync(token);
 

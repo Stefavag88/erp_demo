@@ -1,3 +1,4 @@
+using ERP.Discounts.Domain.Models;
 using ERP.Discounts.Application;
 using ERP.Discounts.Application.Contracts;
 using ERP.Discounts.Application.Repositories;
@@ -11,15 +12,15 @@ public class CouponDiscountProviderTests
 {
     internal sealed class Coupons(int count=1,bool fail=false) : ICouponRepository
     {
-        public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(Guid customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
+        public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
         {
             Assert.Equal(Guid.Parse("10000000-0000-4000-8000-019a6a000001"),customerId);Assert.Equal(["WELCOME10"],codes);Assert.Equal(DateTimeOffset.UnixEpoch,asOfUtc);
             if(fail)throw new IOException();
-            return Task.FromResult<IReadOnlyList<CouponDefinition>>(Enumerable.Range(0,count).Select(i=>new CouponDefinition(Guid.NewGuid(),"WELCOME10","Coupon",CalculationMethod.FixedAmount,CalculationBase.CurrentAmount,10,i)).ToArray());
+            return Task.FromResult<IReadOnlyList<ResolvedDiscount>>(Enumerable.Range(0,count).Select(i=>new ResolvedDiscount(Guid.NewGuid().ToString("D"),"Coupon",DiscountType.Coupon,CalculationMethod.FixedAmount,10,i)).ToArray());
         }
     }
     [Theory] [InlineData(0)] [InlineData(1)] [InlineData(3)]
-    public async Task Normalizes_then_maps_zero_or_many_coupons(int count)
+    public async Task Normalizes_codes_then_returns_zero_or_many_resolved_coupons(int count)
     {
         var context=new PricingContext(PricingRequestValidationTests.Valid() with {CouponCodes=[" welcome10 ","WELCOME10"]},340,[],DateTimeOffset.UnixEpoch);
         var result=await new CouponDiscountProvider(new Coupons(count)).GetEligibleAsync(context,default);
@@ -35,7 +36,7 @@ public class CouponDiscountProviderTests
         await Assert.ThrowsAsync<IOException>(()=>provider.GetEligibleAsync(context,default));
     }
     private sealed class Lists : IPriceListRepository
-    {public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<PriceListDefinition>>([new(Guid.NewGuid(),"Gold",CalculationMethod.Percentage,CalculationBase.CurrentAmount,5,0)]);}
+    {public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<ResolvedDiscount>>([new(Guid.NewGuid().ToString("D"),"Gold",DiscountType.PriceList,CalculationMethod.Percentage,5)]);}
     private sealed class Clock : TimeProvider { public override DateTimeOffset GetUtcNow()=>DateTimeOffset.UnixEpoch; }
     [Fact]
     public async Task Real_providers_compose_the_demo_without_SQL()

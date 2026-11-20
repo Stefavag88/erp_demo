@@ -1,3 +1,4 @@
+using ERP.Discounts.Domain.Models;
 using ERP.Discounts.Application.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -41,14 +42,14 @@ public class PricingEndpointTests
     }
     private sealed class DemoRepositories(bool fail) : IPriceListRepository,ICustomerSegmentProvider,IPromotionRepository,ICouponRepository
     {
-        public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
+        public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
         {
             if(fail)throw new IOException("connection password=do-not-expose");
-            return Task.FromResult<IReadOnlyList<PriceListDefinition>>(customerId==Guid.Parse("10000000-0000-4000-8000-019a6a000099")?[]:[new(Guid.Parse("00000011-0000-0000-0000-000000000001"),"Gold Price List",CalculationMethod.Percentage,CalculationBase.CurrentAmount,5,0)]);
+            return Task.FromResult<IReadOnlyList<ResolvedDiscount>>(customerId==Guid.Parse("10000000-0000-4000-8000-019a6a000099")?[]:[new("00000011-0000-0000-0000-000000000001","Gold Price List",DiscountType.PriceList,CalculationMethod.Percentage,5)]);
         }
         public Task<string?> GetSegmentAsync(Guid customerId,CancellationToken cancellationToken)=>Task.FromResult<string?>(customerId==Guid.Parse("10000000-0000-4000-8000-019a6a000099")?null:"GOLD");
-        public Task<IReadOnlyList<PromotionDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<PromotionDefinition>>([new(Guid.Parse("00000021-0000-0000-0000-000000000001"),"Segment Promotion",200,0,true,null,null,[new("GOLD",CalculationMethod.Percentage,10)])]);
-        public Task<IReadOnlyList<CouponDefinition>> GetEligibleAsync(Guid customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<CouponDefinition>>(codes.Contains("WELCOME10")?[new(Guid.Parse("00000031-0000-0000-0000-000000000001"),"WELCOME10","WELCOME10",CalculationMethod.FixedAmount,CalculationBase.CurrentAmount,10,0)]:[]);
+        public Task<IReadOnlyList<PromotionCandidate>> GetCandidatesAsync(CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<PromotionCandidate>>([new(new("00000021-0000-0000-0000-000000000001","Segment Promotion",DiscountType.Promotion,CalculationMethod.Percentage,10),"GOLD",200,true,null,null)]);
+        public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<ResolvedDiscount>>(codes.Contains("WELCOME10")?[new("00000031-0000-0000-0000-000000000001","WELCOME10",DiscountType.Coupon,CalculationMethod.FixedAmount,10)]:[]);
     }
     private const string Request = """{"orderId":"ORD-123","customerId":"10000000-0000-4000-8000-019a6a000001","originalAmount":340.00,"currency":"EUR","couponCodes":["WELCOME10"]}""";
     internal static async Task AssertDemoAsync(HttpClient client)

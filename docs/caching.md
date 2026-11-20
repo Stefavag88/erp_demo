@@ -4,12 +4,12 @@ Both modules use repository decorators backed by `IMemoryCache` and the shared `
 
 | Decorator | Cached data | Invalidation |
 |---|---|---|
-| `CachedPromotionRepository` | Complete immutable promotion definitions and segment rates | 60-second absolute expiration, eviction or process restart |
+| `CachedPromotionRepository` | Flat immutable promotion/segment candidates containing ResolvedDiscount and eligibility metadata | 60-second absolute expiration, eviction or process restart |
 | `CachedCustomFieldRepository` | Global definitions/options, with separate entries for active-only and include-inactive queries | Successful definition/option creation or activation changes invalidate both entries; 60-second absolute expiration also applies |
 
 Expiration starts after a successful load; hits do not extend it. Empty successful results are cached. Exceptions and cancelled loads are not cached. Each singleton decorator directly owns its entries, and each Dapper operation opens and disposes its own connection.
 
-Promotion eligibility is evaluated for every request using its customer segment, stage-entry amount and shared evaluation timestamp. The cached catalog includes inactive, scheduled and expired definitions so known validity windows remain enforceable without refreshing the cache.
+Promotion eligibility is evaluated for every request using its customer segment, stage-entry amount and shared evaluation timestamp. The cached catalog includes inactive, scheduled and expired candidates so known validity windows remain enforceable without refreshing the cache. Each candidate embeds an immutable ResolvedDiscount; a provider returns that discount only when its candidate is eligible. Definitions without segment rates produce no candidates.
 
 Price-list assignments, coupons, customer segments, pricing results, customer profiles, customer values and history are uncached. The custom-field profile procedure reads definitions, options and values together directly from SQL.
 
@@ -27,4 +27,4 @@ The helper uses atomic operations and asynchronous signals without explicit moni
 
 Invalidation affects one API process. Other processes and direct SQL edits can leave metadata stale until expiration. An ambiguous response after a committed metadata write can also leave a cached catalog until expiration. Value writes always validate authoritative SQL metadata, regardless of cached catalog contents.
 
-See the [discount design](discounts/design.md#promotion-definition-cache), [customer-field design](customer-custom-fields/design.md) and [test guide](testing.md) for module behavior and verification commands.
+See the [discount design](discounts/design.md#promotion-candidate-cache), [customer-field design](customer-custom-fields/design.md) and [test guide](testing.md) for module behavior and verification commands.

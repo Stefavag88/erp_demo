@@ -15,24 +15,22 @@ public sealed class PromotionDiscountProvider(ICustomerSegmentProvider segments,
         if (segment is null) 
             return Array.Empty<ResolvedDiscount>();
 
-        var definitions = await promotions.GetDefinitionsAsync(cancellationToken);
+        var candidates = await promotions.GetCandidatesAsync(cancellationToken);
         var resolved = new List<ResolvedDiscount>();
 
-        foreach (var definition in definitions)
-        {
-            if (definition.SegmentRates.GroupBy(r => r.SegmentCode, StringComparer.Ordinal).Any(g => g.Count() > 1)) 
-                throw new InvalidOperationException("Duplicate promotion segment rates.");
+        if (candidates.GroupBy(c => (c.Discount.Id, c.SegmentCode)).Any(g => g.Count() > 1))
+            throw new InvalidOperationException("Duplicate promotion segment rates.");
 
-            if (!definition.IsActive || 
-                context.CurrentAmount < definition.MinimumCurrentAmount || 
-                (definition.StartsAtUtc.HasValue && context.AsOfUtc < definition.StartsAtUtc.Value) || 
-                (definition.EndsAtUtc.HasValue && context.AsOfUtc >= definition.EndsAtUtc.Value)) 
+        foreach (var candidate in candidates)
+        {
+            if (!candidate.IsActive ||
+                context.CurrentAmount < candidate.MinimumCurrentAmount ||
+                (candidate.StartsAtUtc.HasValue && context.AsOfUtc < candidate.StartsAtUtc.Value) ||
+                (candidate.EndsAtUtc.HasValue && context.AsOfUtc >= candidate.EndsAtUtc.Value))
                 continue;
 
-            var rate = definition.SegmentRates.FirstOrDefault(r => string.Equals(r.SegmentCode, segment, StringComparison.Ordinal));
-
-            if (rate is not null)
-                resolved.Add(new(definition.Id.ToString("D"), definition.Name, Type, rate.CalculationMethod, rate.Value, definition.PriorityWithinType, rate.CalculationBase));
+            if (string.Equals(candidate.SegmentCode, segment, StringComparison.Ordinal))
+                resolved.Add(candidate.Discount);
         }
 
         return resolved.AsReadOnly();

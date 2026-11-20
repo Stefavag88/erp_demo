@@ -27,7 +27,7 @@ public class SqlReadRetryIntegrationTests
                 Assert.Equal(10m, Assert.Single(await new DapperCouponRepository(factory, new SqlReadRetryPolicy(TimeProvider.System)).GetEligibleAsync(Guid.Parse("10000000-0000-4000-8000-019a6a000001"), ["WELCOME10"], AsOf, default)).Value);
                 break;
             default:
-                Assert.Equal(2, (await new DapperPromotionRepository(factory, new SqlReadRetryPolicy(TimeProvider.System)).GetDefinitionsAsync(default)).Count);
+                Assert.Equal(3, (await new DapperPromotionRepository(factory, new SqlReadRetryPolicy(TimeProvider.System)).GetCandidatesAsync(default)).Count);
                 break;
         }
     }

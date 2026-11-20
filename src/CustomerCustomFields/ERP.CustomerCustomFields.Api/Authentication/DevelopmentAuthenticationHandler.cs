@@ -13,7 +13,9 @@ public sealed class DevelopmentAuthenticationHandler(IOptionsMonitor<Authenticat
     {
         if (!environment.IsDevelopment())
             return Task.FromResult(AuthenticateResult.NoResult());
+
         var identity = new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "1"), new Claim(ClaimTypes.Name, "Demo user")], Scheme.Name);
+
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name)));
     }
 }

@@ -43,14 +43,17 @@ public sealed class DiscountEngine(IEnumerable<IDiscountProvider> providers, Dis
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var context = new PricingContext(request, current, Array.AsReadOnly(applied.ToArray()), asOfUtc);
+            var context = new PricingContext(request, current, applied.ToArray().AsReadOnly(), asOfUtc);
 
             var discounts = await provider.GetEligibleAsync(context, cancellationToken) 
                 ?? throw new InvalidOperationException("Provider returned null discounts.");
 
             var ids = new HashSet<string>(StringComparer.Ordinal);
+            var orderedDiscounts = discounts
+                .OrderBy(d => d?.PriorityWithinType)
+                .ThenBy(d => d?.Id, StringComparer.Ordinal);
 
-            foreach (var discount in discounts.OrderBy(d => d?.PriorityWithinType).ThenBy(d => d?.Id, StringComparer.Ordinal))
+            foreach (var discount in orderedDiscounts)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 

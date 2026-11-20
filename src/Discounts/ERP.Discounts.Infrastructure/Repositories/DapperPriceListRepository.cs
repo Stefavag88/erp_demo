@@ -1,5 +1,6 @@
 using Dapper;
 using ERP.Discounts.Application.Repositories;
+using ERP.Discounts.Domain.Models;
 using ERP.Discounts.Infrastructure.Data;
 using ERP.Discounts.Infrastructure.Resilience;
 using System.Data;
@@ -8,8 +9,8 @@ namespace ERP.Discounts.Infrastructure.Repositories;
 
 public sealed class DapperPriceListRepository(SqlConnectionFactory connections, SqlReadRetryPolicy retry) : IPriceListRepository
 {
-    public Task<IReadOnlyList<PriceListDefinition>> GetEligibleAsync(Guid customerId, DateTimeOffset asOfUtc, CancellationToken cancellationToken)
-        => retry.ExecuteAsync<IReadOnlyList<PriceListDefinition>>(async token =>
+    public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId, DateTimeOffset asOfUtc, CancellationToken cancellationToken)
+        => retry.ExecuteAsync<IReadOnlyList<ResolvedDiscount>>(async token =>
         {
             await using var connection = await connections.OpenAsync(token);
 
@@ -24,8 +25,9 @@ public sealed class DapperPriceListRepository(SqlConnectionFactory connections, 
                     cancellationToken: token));
 
             return rows
-                .Select(r => r.ToDefinition())
+                .Select(r => r.ToDiscount())
                 .ToArray()
                 .AsReadOnly();
+
         }, cancellationToken);
 }

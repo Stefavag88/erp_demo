@@ -11,7 +11,9 @@ internal static class CouponCodeTable
 
         var table = new DataTable();
         var column = table.Columns.Add("Code", typeof(string));
-        column.MaxLength = 64; column.AllowDBNull = false;
+
+        column.MaxLength = 64;
+        column.AllowDBNull = false;
 
         foreach (var code in normalized) 
             table.Rows.Add(code);

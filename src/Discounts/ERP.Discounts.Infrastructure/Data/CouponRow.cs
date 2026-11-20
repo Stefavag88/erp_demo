@@ -1,4 +1,5 @@
-using ERP.Discounts.Application.Repositories;
+using ERP.Discounts.Domain.Enums;
+using ERP.Discounts.Domain.Models;
 
 namespace ERP.Discounts.Infrastructure.Data;
 
@@ -12,5 +13,6 @@ internal sealed class CouponRow
     public decimal Value { get; set; }
     public int PriorityWithinType { get; set; }
 
-    internal CouponDefinition ToDefinition() => new(Id,Code,Name,DiscountRowMapper.Method(CalculationMethod),DiscountRowMapper.Base(CalculationBase),Value,PriorityWithinType);
+    internal ResolvedDiscount ToDiscount()
+        => new(Id.ToString("D"), Name, DiscountType.Coupon, DiscountRowMapper.Method(CalculationMethod), Value, PriorityWithinType, DiscountRowMapper.Base(CalculationBase));
 }

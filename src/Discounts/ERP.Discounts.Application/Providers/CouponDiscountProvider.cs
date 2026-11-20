@@ -16,11 +16,6 @@ public sealed class CouponDiscountProvider(ICouponRepository repository) : IDisc
         if (codes.Count == 0) 
             return Array.Empty<ResolvedDiscount>();
 
-        var definitions = await repository.GetEligibleAsync(context.Request.CustomerId, codes, context.AsOfUtc, cancellationToken);
-
-        return definitions
-            .Select(d => new ResolvedDiscount(d.Id.ToString("D"), d.Name, Type, d.CalculationMethod, d.Value, d.PriorityWithinType, d.CalculationBase))
-            .ToArray()
-            .AsReadOnly();
+        return await repository.GetEligibleAsync(context.Request.CustomerId, codes, context.AsOfUtc, cancellationToken);
     }
 }

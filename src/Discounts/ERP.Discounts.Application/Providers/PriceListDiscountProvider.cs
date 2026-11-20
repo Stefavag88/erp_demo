@@ -9,12 +9,6 @@ public sealed class PriceListDiscountProvider(IPriceListRepository repository) :
 {
     public DiscountType Type => DiscountType.PriceList;
 
-    public async Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken)
-    {
-        var definitions = await repository.GetEligibleAsync(context.Request.CustomerId, context.AsOfUtc, cancellationToken);
-        return definitions
-            .Select(d => new ResolvedDiscount(d.Id.ToString("D"), d.Name, Type, d.CalculationMethod, d.Value, d.PriorityWithinType, d.CalculationBase))
-            .ToArray()
-            .AsReadOnly();
-    }
+    public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken)
+        => repository.GetEligibleAsync(context.Request.CustomerId, context.AsOfUtc, cancellationToken);
 }

@@ -17,10 +17,10 @@ public class CachedPromotionEligibilityTests
     private sealed class CountingRepository(IPromotionRepository inner) : IPromotionRepository
     {
         public int Calls { get; private set; }
-        public Task<IReadOnlyList<PromotionDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken)
+        public Task<IReadOnlyList<PromotionCandidate>> GetCandidatesAsync(CancellationToken cancellationToken)
         {
             Calls++;
-            return inner.GetDefinitionsAsync(cancellationToken);
+            return inner.GetCandidatesAsync(cancellationToken);
         }
     }
 
