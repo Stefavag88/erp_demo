@@ -6,5 +6,5 @@ namespace ERP.Discounts.Application.Contracts;
 public interface IDiscountProvider
 {
     DiscountType Type { get; }
-    Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Discount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken);
 }

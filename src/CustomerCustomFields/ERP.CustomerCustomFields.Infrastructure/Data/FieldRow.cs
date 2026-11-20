@@ -16,5 +16,5 @@ internal class FieldRow
         Label,
         CustomFieldMapper.Type(FieldType),
         IsActive,
-        options.Where(option => option.FieldId == FieldId).ToArray().AsReadOnly());
+        options.Where(option => option.FieldId == FieldId));
 }

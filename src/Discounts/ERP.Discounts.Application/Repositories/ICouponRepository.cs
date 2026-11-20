@@ -4,7 +4,7 @@ namespace ERP.Discounts.Application.Repositories;
 
 public interface ICouponRepository 
 { 
-    Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(
+    Task<IReadOnlyList<Discount>> GetEligibleAsync(
         Guid customerId, 
         IReadOnlyList<string> codes, 
         DateTimeOffset asOfUtc, 

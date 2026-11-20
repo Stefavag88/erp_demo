@@ -124,17 +124,17 @@ public class CachedCustomFieldRepositoryTests
     {
         using var memory = new MemoryCache(new MemoryCacheOptions());
         FieldOption[] options = [new(2, 1, "VIP", 0, false)];
-        FieldDefinition[] definitions = [Definition with { Options = options }];
+        FieldDefinition[] definitions = [new(1, "tags", "Tags", CustomFieldType.MultiSelect, true, options)];
         var inner = new Repository
         {
             Load = (includeInactive, _) => Task.FromResult<IReadOnlyList<FieldDefinition>>(
-                includeInactive ? [Definition with { IsActive = false }] : definitions)
+                includeInactive ? [new(1, "tags", "Tags", CustomFieldType.MultiSelect, false, Definition.Options)] : definitions)
         };
         using var repository = new CachedCustomFieldRepository(inner, memory);
         var active = await repository.ListAsync(false, default);
         var all = await repository.ListAsync(true, default);
-        definitions[0] = Definition with { Label = "Changed" };
-        options[0] = options[0] with { Label = "Changed" };
+        definitions[0] = new(1, "tags", "Changed", CustomFieldType.MultiSelect, true, []);
+        options[0] = new(2, 1, "Changed", 0, false);
 
         Assert.Equal("Tags", Assert.Single(active).Label);
         Assert.Equal("VIP", Assert.Single(active[0].Options).Label);

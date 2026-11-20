@@ -4,5 +4,5 @@ namespace ERP.Discounts.Application.Repositories;
 
 public interface IPriceListRepository
 {
-    Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId, DateTimeOffset asOfUtc, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Discount>> GetEligibleAsync(Guid customerId, DateTimeOffset asOfUtc, CancellationToken cancellationToken);
 }

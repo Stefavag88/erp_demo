@@ -10,7 +10,7 @@ namespace ERP.Discounts.UnitTests.Engine;
 public class DiscountEngineTests
 {
     internal static DiscountEngine Engine(params IDiscountProvider[] providers) => new(providers, new DiscountCalculator(), TimeProvider.System);
-    internal static ResolvedDiscount D(string id, DiscountType type, decimal value, int priority = 0, CalculationBase basis = CalculationBase.CurrentAmount) => new(id, id, type, type == DiscountType.Coupon ? CalculationMethod.FixedAmount : CalculationMethod.Percentage, value, priority, basis);
+    internal static Discount D(string id, DiscountType type, decimal value, int priority = 0, CalculationBase basis = CalculationBase.CurrentAmount) => new(id, id, type, type == DiscountType.Coupon ? CalculationMethod.FixedAmount : CalculationMethod.Percentage, value, priority, basis);
 
     [Theory]
     [InlineData(CalculationBase.CurrentAmount, 280.70, 59.30)]
@@ -60,7 +60,7 @@ public class DiscountEngineTests
         var first = new StubDiscountProvider(DiscountType.PriceList, (_, _) =>
         {
             invoked = true;
-            return Task.FromResult<IReadOnlyList<ResolvedDiscount>>([]);
+            return Task.FromResult<IReadOnlyList<Discount>>([]);
         });
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Engine(first,
@@ -70,13 +70,12 @@ public class DiscountEngineTests
 
     public static IEnumerable<object[]> BadResults()
     {
-        yield return [new ResolvedDiscount[] { D("wrong",DiscountType.Coupon,1) }];
-        yield return [new ResolvedDiscount[] { D("same",DiscountType.Promotion,1),D("same",DiscountType.Promotion,2) }];
-        yield return [new ResolvedDiscount[] { null! }];
-        yield return [new ResolvedDiscount[] { D("bad",DiscountType.Promotion,-1) }];
+        yield return [new Discount[] { D("wrong",DiscountType.Coupon,1) }];
+        yield return [new Discount[] { D("same",DiscountType.Promotion,1),D("same",DiscountType.Promotion,2) }];
+        yield return [new Discount[] { null! }];
         yield return [null!];
     }
     [Theory,MemberData(nameof(BadResults))]
-    public async Task Rejects_malformed_provider_results(IReadOnlyList<ResolvedDiscount> results)
+    public async Task Rejects_malformed_provider_results(IReadOnlyList<Discount> results)
         => await Assert.ThrowsAsync<InvalidOperationException>(()=>Engine(new StubDiscountProvider(DiscountType.Promotion,(_,_)=>Task.FromResult(results))).CalculateAsync(PricingRequestValidationTests.Valid(),default));
 }

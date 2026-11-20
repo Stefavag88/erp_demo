@@ -17,7 +17,7 @@ public class DiscountEngineContextTests
     public async Task Samples_time_once_and_provides_immutable_stage_snapshots()
     {
         var clock = new Clock(); var contexts = new List<PricingContext>();
-        IDiscountProvider Provider(DiscountType type, decimal value) => new StubDiscountProvider(type, (c,_) => { contexts.Add(c); return Task.FromResult<IReadOnlyList<ResolvedDiscount>>([DiscountEngineTests.D(type.ToString(),type,value)]); });
+        IDiscountProvider Provider(DiscountType type, decimal value) => new StubDiscountProvider(type, (c,_) => { contexts.Add(c); return Task.FromResult<IReadOnlyList<Discount>>([DiscountEngineTests.D(type.ToString(),type,value)]); });
         var engine = new DiscountEngine([Provider(DiscountType.PriceList,5),Provider(DiscountType.Promotion,10),Provider(DiscountType.Coupon,10)],new DiscountCalculator(),clock);
         var result = await engine.CalculateAsync(PricingRequestValidationTests.Valid(),default);
         Assert.Equal(280.70m,result.FinalAmount); Assert.Equal(1,clock.Calls);
@@ -42,7 +42,7 @@ public class DiscountEngineContextTests
     public async Task Invokes_later_categories_at_zero_and_keeps_zero_deductions()
     {
         var seen = -1m;
-        var next = new StubDiscountProvider(DiscountType.Coupon,(c,_)=>{seen=c.CurrentAmount;return Task.FromResult<IReadOnlyList<ResolvedDiscount>>([DiscountEngineTests.D("coupon",DiscountType.Coupon,10)]);});
+        var next = new StubDiscountProvider(DiscountType.Coupon,(c,_)=>{seen=c.CurrentAmount;return Task.FromResult<IReadOnlyList<Discount>>([DiscountEngineTests.D("coupon",DiscountType.Coupon,10)]);});
         var result = await DiscountEngineTests.Engine(StubDiscountProvider.With(DiscountType.PriceList,DiscountEngineTests.D("list",DiscountType.PriceList,100)),next).CalculateAsync(PricingRequestValidationTests.Valid(),default);
         Assert.Equal(0m,seen);Assert.Equal(2,result.Discounts.Count);Assert.Equal(0m,result.Discounts[1].DiscountAmount);
     }

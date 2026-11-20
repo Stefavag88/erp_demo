@@ -32,7 +32,8 @@ public class CustomFieldServiceTests
             Created = command;
             ActorId = actorId;
             Token = token;
-            return Task.FromResult(Definition with { FieldType = command.FieldType });
+            return Task.FromResult(new FieldDefinition(7, command.FieldKey, command.Label, command.FieldType, true,
+                command.Options.Select((option, index) => new FieldOption(index + 1, 7, option.Label, option.SortOrder, true)).ToArray()));
         }
 
         public Task<IReadOnlyList<FieldDefinition>> ListAsync(bool includeInactive, CancellationToken token)

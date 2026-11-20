@@ -10,11 +10,11 @@ public sealed class CouponDiscountProvider(ICouponRepository repository) : IDisc
 {
     public DiscountType Type => DiscountType.Coupon;
 
-    public async Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Discount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken)
     {
         var codes = CouponCodeNormalizer.Normalize(context.Request.CouponCodes);
         if (codes.Count == 0) 
-            return Array.Empty<ResolvedDiscount>();
+            return Array.Empty<Discount>();
 
         return await repository.GetEligibleAsync(context.Request.CustomerId, codes, context.AsOfUtc, cancellationToken);
     }

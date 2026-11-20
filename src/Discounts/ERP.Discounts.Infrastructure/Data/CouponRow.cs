@@ -13,6 +13,6 @@ internal sealed class CouponRow
     public decimal Value { get; set; }
     public int PriorityWithinType { get; set; }
 
-    internal ResolvedDiscount ToDiscount()
+    internal Discount ToDiscount()
         => new(Id.ToString("D"), Name, DiscountType.Coupon, DiscountRowMapper.Method(CalculationMethod), Value, PriorityWithinType, DiscountRowMapper.Base(CalculationBase));
 }

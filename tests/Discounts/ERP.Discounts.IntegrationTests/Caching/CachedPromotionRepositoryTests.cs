@@ -30,7 +30,7 @@ public class CachedPromotionRepositoryTests
     }
 
     private static PromotionCandidate Definition(decimal value = 10) => new(
-        new ResolvedDiscount("00000021-0000-0000-0000-000000000001", "Promotion", DiscountType.Promotion, CalculationMethod.Percentage, value),
+        new Discount("00000021-0000-0000-0000-000000000001", "Promotion", DiscountType.Promotion, CalculationMethod.Percentage, value),
         "GOLD", 200, true, null, null);
 
     [Fact]
@@ -119,7 +119,7 @@ public class CachedPromotionRepositoryTests
         var first = await cached.GetCandidatesAsync(default);
 
         Assert.Throws<NotSupportedException>(() => ((IList<PromotionCandidate>)first)[0] = Definition(50));
-        var copy = first[0] with { Discount = first[0].Discount with { Value = 50 } };
+        var copy = first[0] with { Discount = Definition(50).Discount };
         Assert.Equal(50m, copy.Discount.Value);
 
         var next = await cached.GetCandidatesAsync(default);

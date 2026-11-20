@@ -14,7 +14,7 @@ internal sealed class PromotionRateRow
 
     internal PromotionCandidate ToCandidate(PromotionRow promotion)
         => new(
-            new ResolvedDiscount(promotion.Id.ToString("D"), promotion.Name, DiscountType.Promotion,
+            new Discount(promotion.Id.ToString("D"), promotion.Name, DiscountType.Promotion,
                 DiscountRowMapper.Method(CalculationMethod), Value, promotion.PriorityWithinType, DiscountRowMapper.Base(CalculationBase)),
             SegmentCode, promotion.MinimumCurrentAmount, promotion.IsActive,
             DiscountRowMapper.Utc(promotion.StartsAtUtc), DiscountRowMapper.Utc(promotion.EndsAtUtc));

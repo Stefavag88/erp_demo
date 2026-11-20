@@ -9,8 +9,8 @@ namespace ERP.Discounts.Infrastructure.Repositories;
 
 public sealed class DapperPriceListRepository(SqlConnectionFactory connections, SqlReadRetryPolicy retry) : IPriceListRepository
 {
-    public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId, DateTimeOffset asOfUtc, CancellationToken cancellationToken)
-        => retry.ExecuteAsync<IReadOnlyList<ResolvedDiscount>>(async token =>
+    public Task<IReadOnlyList<Discount>> GetEligibleAsync(Guid customerId, DateTimeOffset asOfUtc, CancellationToken cancellationToken)
+        => retry.ExecuteAsync<IReadOnlyList<Discount>>(async token =>
         {
             await using var connection = await connections.OpenAsync(token);
 

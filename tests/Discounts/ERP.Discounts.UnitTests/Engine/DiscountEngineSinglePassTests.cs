@@ -9,26 +9,26 @@ namespace ERP.Discounts.UnitTests.Engine;
 
 public class DiscountEngineSinglePassTests
 {
-    private sealed class Provider(IReadOnlyList<ResolvedDiscount> discounts) : IDiscountProvider
+    private sealed class Provider(IReadOnlyList<Discount> discounts) : IDiscountProvider
     {
         public DiscountType Type => DiscountType.Promotion;
 
-        public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken)
+        public Task<IReadOnlyList<Discount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken)
             => Task.FromResult(discounts);
     }
 
-    private sealed class SingleEnumerationList(params ResolvedDiscount[] items) : IReadOnlyList<ResolvedDiscount>
+    private sealed class SingleEnumerationList(params Discount[] items) : IReadOnlyList<Discount>
     {
         public int Enumerations { get; private set; }
         public int Count => items.Length;
-        public ResolvedDiscount this[int index] => items[index];
+        public Discount this[int index] => items[index];
 
-        public IEnumerator<ResolvedDiscount> GetEnumerator()
+        public IEnumerator<Discount> GetEnumerator()
         {
             if (++Enumerations > 1)
                 throw new InvalidOperationException("Provider results were enumerated twice.");
 
-            return ((IEnumerable<ResolvedDiscount>)items).GetEnumerator();
+            return ((IEnumerable<Discount>)items).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

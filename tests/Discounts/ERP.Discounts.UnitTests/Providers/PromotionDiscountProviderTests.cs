@@ -28,8 +28,8 @@ public class PromotionDiscountProviderTests
 
     internal static PromotionCandidate Definition(string segment = "GOLD", decimal value = 10,
         CalculationBase calculationBase = CalculationBase.CurrentAmount)
-        => new(new ResolvedDiscount("00000021-0000-0000-0000-000000000001", "Segment promotion",
-            DiscountType.Promotion, CalculationMethod.Percentage, value, CalculationBase: calculationBase),
+        => new(new Discount("00000021-0000-0000-0000-000000000001", "Segment promotion",
+            DiscountType.Promotion, CalculationMethod.Percentage, value, calculationBase: calculationBase),
             segment, 200, true, null, null);
 
     private static PricingContext Context(decimal current = 323)
@@ -73,7 +73,10 @@ public class PromotionDiscountProviderTests
     public async Task Uses_inclusive_start_exclusive_end_and_active_flag()
     {
         var candidate = Definition();
-        PromotionCandidate Other(string id) => candidate with { Discount = candidate.Discount with { Id = id } };
+        PromotionCandidate Other(string id) => candidate with
+        {
+            Discount = new Discount(id, candidate.Discount.Name, DiscountType.Promotion, CalculationMethod.Percentage, 10)
+        };
         var rows = new[]
         {
             candidate with { StartsAtUtc = DateTimeOffset.UnixEpoch },
@@ -91,7 +94,7 @@ public class PromotionDiscountProviderTests
         var candidate = Definition();
         var fixedCandidate = candidate with
         {
-            Discount = candidate.Discount with { Id = "fixed", CalculationMethod = CalculationMethod.FixedAmount, Value = 20 }
+            Discount = new Discount("fixed", candidate.Discount.Name, DiscountType.Promotion, CalculationMethod.FixedAmount, 20)
         };
         var result = await new PromotionDiscountProvider(new Segments(), new Promotions(candidate, fixedCandidate))
             .GetEligibleAsync(Context(200), default);
@@ -106,7 +109,7 @@ public class PromotionDiscountProviderTests
     {
         var candidate = Definition();
         await Assert.ThrowsAsync<InvalidOperationException>(() => new PromotionDiscountProvider(new Segments(),
-            new Promotions(candidate, candidate with { Discount = candidate.Discount with { Value = 5 } }))
+            new Promotions(candidate, Definition(value: 5)))
             .GetEligibleAsync(Context(), default));
         await Assert.ThrowsAsync<IOException>(() => new PromotionDiscountProvider(new Segments(fail: true), new Promotions())
             .GetEligibleAsync(Context(), default));

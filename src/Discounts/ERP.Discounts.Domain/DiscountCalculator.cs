@@ -5,30 +5,14 @@ namespace ERP.Discounts.Domain;
 
 public sealed class DiscountCalculator
 {
-    public DiscountCalculation Calculate(decimal originalAmount, decimal currentAmount, ResolvedDiscount discount)
+    public DiscountCalculation Calculate(decimal originalAmount, decimal currentAmount, Discount discount)
     {
-        if (originalAmount < 0 || 
-            originalAmount > 99999999999999999.99m || 
-            currentAmount < 0 || 
-            currentAmount > originalAmount || 
-            decimal.Round(originalAmount, 2) != originalAmount || 
-            decimal.Round(currentAmount, 2) != currentAmount)
-        {
-            throw new ArgumentOutOfRangeException(nameof(currentAmount), "Amounts must be nonnegative EUR money and current cannot exceed original.");
-        }
+        EuroAmountValidator.Validate(originalAmount, nameof(originalAmount));
+        EuroAmountValidator.Validate(currentAmount, nameof(currentAmount));
+        if (currentAmount > originalAmount)
+            throw new ArgumentOutOfRangeException(nameof(currentAmount), "Current amount cannot exceed original amount.");
 
         ArgumentNullException.ThrowIfNull(discount);
-
-        if (!Enum.IsDefined(discount.Type) || 
-            !Enum.IsDefined(discount.CalculationMethod) || 
-            !Enum.IsDefined(discount.CalculationBase) || 
-            string.IsNullOrWhiteSpace(discount.Id) || 
-            string.IsNullOrWhiteSpace(discount.Name) || 
-            discount.Value < 0 || 
-            (discount.CalculationMethod == CalculationMethod.Percentage && discount.Value > 100))
-        {
-            throw new ArgumentException("Malformed resolved discount.", nameof(discount));
-        }
 
         decimal? basis = discount.CalculationMethod == CalculationMethod.FixedAmount 
             ? null 

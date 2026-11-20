@@ -9,14 +9,14 @@ public sealed class PromotionDiscountProvider(ICustomerSegmentProvider segments,
 {
     public DiscountType Type => DiscountType.Promotion;
 
-    public async Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Discount>> GetEligibleAsync(PricingContext context, CancellationToken cancellationToken)
     {
         var segment = await segments.GetSegmentAsync(context.Request.CustomerId, cancellationToken);
         if (segment is null) 
-            return Array.Empty<ResolvedDiscount>();
+            return Array.Empty<Discount>();
 
         var candidates = await promotions.GetCandidatesAsync(cancellationToken);
-        var resolved = new List<ResolvedDiscount>();
+        var resolved = new List<Discount>();
 
         if (candidates.GroupBy(c => (c.Discount.Id, c.SegmentCode)).Any(g => g.Count() > 1))
             throw new InvalidOperationException("Duplicate promotion segment rates.");

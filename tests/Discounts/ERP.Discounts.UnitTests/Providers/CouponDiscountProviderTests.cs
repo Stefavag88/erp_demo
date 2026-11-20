@@ -12,11 +12,11 @@ public class CouponDiscountProviderTests
 {
     internal sealed class Coupons(int count=1,bool fail=false) : ICouponRepository
     {
-        public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
+        public Task<IReadOnlyList<Discount>> GetEligibleAsync(Guid customerId,IReadOnlyList<string> codes,DateTimeOffset asOfUtc,CancellationToken cancellationToken)
         {
             Assert.Equal(Guid.Parse("10000000-0000-4000-8000-019a6a000001"),customerId);Assert.Equal(["WELCOME10"],codes);Assert.Equal(DateTimeOffset.UnixEpoch,asOfUtc);
             if(fail)throw new IOException();
-            return Task.FromResult<IReadOnlyList<ResolvedDiscount>>(Enumerable.Range(0,count).Select(i=>new ResolvedDiscount(Guid.NewGuid().ToString("D"),"Coupon",DiscountType.Coupon,CalculationMethod.FixedAmount,10,i)).ToArray());
+            return Task.FromResult<IReadOnlyList<Discount>>(Enumerable.Range(0,count).Select(i=>new Discount(Guid.NewGuid().ToString("D"),"Coupon",DiscountType.Coupon,CalculationMethod.FixedAmount,10,i)).ToArray());
         }
     }
     [Theory] [InlineData(0)] [InlineData(1)] [InlineData(3)]
@@ -36,7 +36,7 @@ public class CouponDiscountProviderTests
         await Assert.ThrowsAsync<IOException>(()=>provider.GetEligibleAsync(context,default));
     }
     private sealed class Lists : IPriceListRepository
-    {public Task<IReadOnlyList<ResolvedDiscount>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<ResolvedDiscount>>([new(Guid.NewGuid().ToString("D"),"Gold",DiscountType.PriceList,CalculationMethod.Percentage,5)]);}
+    {public Task<IReadOnlyList<Discount>> GetEligibleAsync(Guid customerId,DateTimeOffset asOfUtc,CancellationToken cancellationToken)=>Task.FromResult<IReadOnlyList<Discount>>([new(Guid.NewGuid().ToString("D"),"Gold",DiscountType.PriceList,CalculationMethod.Percentage,5)]);}
     private sealed class Clock : TimeProvider { public override DateTimeOffset GetUtcNow()=>DateTimeOffset.UnixEpoch; }
     [Fact]
     public async Task Real_providers_compose_the_demo_without_SQL()

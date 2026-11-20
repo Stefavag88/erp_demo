@@ -28,11 +28,12 @@ Use a matching SQL-authentication connection string when testing against Docker 
 
 | Area | Coverage |
 |---|---|
-| Discount calculation | Category/within-category ordering, original/current bases, rounding, caps, input validation and provider failures |
+| Discount model/calculation | Constructor invariants, monetary validation, original/current bases, rounding, caps, applied-step consistency, derived totals and immutable breakdowns |
+| Discount engine | Category/within-category ordering, provider/category consistency, null/duplicate results and provider failures |
 | Discount persistence/API | Assignments, coupon TVPs/allow-lists, numeric enum mapping, GUIDs, validity boundaries, repeatable seeds and seeded pricing results |
 | Caching | Immutable snapshots, expiration, concurrent misses, invalidation during loads, cancellation, failures and disposal |
 | Read resilience | Transient recovery, exhaustion, permanent errors, cancellation, timeout, connection cleanup and stable evaluation inputs |
-| Global custom fields | Definition visibility, no value prepopulation, options, activation, malformed shapes, bounds and atomic rejection |
+| Global custom fields | Customer/definition/option constructor invariants, immutable option ownership, definition visibility, no value prepopulation, activation, malformed shapes, bounds and atomic rejection |
 | Customer values/history | Per-customer isolation, canonical selections, exact text changes, clears/no-ops, inactive options, first/existing write races and stale-version conflicts |
 | Temporal history | Initial/consecutive transitions, zero-duration versions, point-in-time reads and contiguous histories during concurrent writes |
 | Custom-field HTTP | Application-service behavior, required versions, authentication/actor identity and Problem Details |

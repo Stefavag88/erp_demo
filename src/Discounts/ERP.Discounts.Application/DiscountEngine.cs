@@ -62,38 +62,15 @@ public sealed class DiscountEngine(IEnumerable<IDiscountProvider> providers, Dis
                     !ids.Add(discount.Id)) 
                     throw new InvalidOperationException("Malformed provider category or duplicate identity.");
 
-                DiscountCalculation calculation;
-                try 
-                { 
-                    calculation = calculator.Calculate(request.OriginalAmount, current, discount);
-                }
-                catch (ArgumentException ex) 
-                { 
-                    throw new InvalidOperationException("Malformed provider discount.", ex);
-                }
+                var calculation = calculator.Calculate(request.OriginalAmount, current, discount);
 
-                var calculationMethod = discount.CalculationMethod == CalculationMethod.FixedAmount 
-                    ? CalculationBase.CurrentAmount 
-                    : discount.CalculationBase;
-
-                AppliedDiscount appliedDiscount = new(
-                    applied.Count + 1, 
-                    discount.Id, 
-                    discount.Name, 
-                    discount.Type, 
-                    discount.CalculationMethod,
-                    calculationMethod,
-                    discount.Value, 
-                    calculation.CalculationBaseAmount,
-                    current, 
-                    calculation.AppliedAmount,
-                    calculation.PriceAfter);
+                var appliedDiscount = AppliedDiscount.Create(applied.Count + 1, discount, current, calculation);
 
                 applied.Add(appliedDiscount);
 
-                current = calculation.PriceAfter;
+                current = appliedDiscount.PriceAfter;
             }
         }
-        return new(request.OrderId, request.Currency, request.OriginalAmount, request.OriginalAmount - current, current, applied.AsReadOnly());
+        return PricingResult.Create(request.OrderId, request.Currency, request.OriginalAmount, applied);
     }
 }

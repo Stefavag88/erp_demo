@@ -18,10 +18,7 @@ public sealed class CachedCustomFieldRepository(ICustomFieldRepository inner, IM
             var definitions = await inner.ListAsync(includeInactive, cancellation)
                 ?? throw new InvalidOperationException("Custom-field repository returned a null catalog.");
 
-            return definitions.Select(definition => definition with
-            {
-                Options = definition.Options.ToArray().AsReadOnly()
-            }).ToArray().AsReadOnly();
+            return definitions.ToArray().AsReadOnly();
         }, token);
 
     public async Task<FieldDefinition> CreateAsync(CreateFieldCommand command, int actorId, CancellationToken token)
