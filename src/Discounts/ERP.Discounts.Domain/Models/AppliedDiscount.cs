@@ -21,13 +21,14 @@ public sealed class AppliedDiscount
 
     private AppliedDiscount(int sequence, Discount discount, decimal priceBefore, DiscountCalculation calculation)
     {
-        if (sequence <= 0)
-            throw new ArgumentOutOfRangeException(nameof(sequence));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sequence);
         ArgumentNullException.ThrowIfNull(discount);
         ArgumentNullException.ThrowIfNull(calculation);
+
         EuroAmountValidator.Validate(priceBefore, nameof(priceBefore));
         EuroAmountValidator.Validate(calculation.AppliedAmount, nameof(calculation));
         EuroAmountValidator.Validate(calculation.PriceAfter, nameof(calculation));
+
         if (calculation.AppliedAmount > priceBefore || calculation.PriceAfter != priceBefore - calculation.AppliedAmount)
             throw new ArgumentException("The deduction and remaining amount must agree with the price before the discount.", nameof(calculation));
 
@@ -40,7 +41,9 @@ public sealed class AppliedDiscount
         {
             if (calculation.CalculationBaseAmount is not { } basis)
                 throw new ArgumentException("Percentage calculations require a basis.", nameof(calculation));
+
             EuroAmountValidator.Validate(basis, nameof(calculation));
+
             if (basis < priceBefore || (discount.CalculationBase == CalculationBase.CurrentAmount && basis != priceBefore))
                 throw new ArgumentException("The percentage basis must agree with the calculation base.", nameof(calculation));
         }

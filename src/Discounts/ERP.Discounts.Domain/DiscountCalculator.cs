@@ -9,6 +9,7 @@ public sealed class DiscountCalculator
     {
         EuroAmountValidator.Validate(originalAmount, nameof(originalAmount));
         EuroAmountValidator.Validate(currentAmount, nameof(currentAmount));
+
         if (currentAmount > originalAmount)
             throw new ArgumentOutOfRangeException(nameof(currentAmount), "Current amount cannot exceed original amount.");
 

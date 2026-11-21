@@ -26,10 +26,13 @@ public sealed class Discount
 
         if (!Enum.IsDefined(type))
             throw new ArgumentOutOfRangeException(nameof(type));
+
         if (!Enum.IsDefined(calculationMethod))
             throw new ArgumentOutOfRangeException(nameof(calculationMethod));
+
         if (!Enum.IsDefined(calculationBase))
             throw new ArgumentOutOfRangeException(nameof(calculationBase));
+
         if (value < 0 || (calculationMethod == CalculationMethod.Percentage && value > 100))
             throw new ArgumentOutOfRangeException(nameof(value), "Discount values must be nonnegative and percentages cannot exceed 100.");
 
