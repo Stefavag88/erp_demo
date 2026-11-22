@@ -13,15 +13,12 @@ public sealed class DapperPromotionRepository(SqlConnectionFactory connections, 
         {
             await using var connection = await connections.OpenAsync(token);
 
-            using var results = await connection.QueryMultipleAsync(
+            var rows = await connection.QueryAsync<PromotionCandidateRow>(
                 new CommandDefinition(
                     "dbo.usp_Promotion_GetDefinitions",
                     commandType: CommandType.StoredProcedure,
                     cancellationToken: token));
 
-            var definitions = (await results.ReadAsync<PromotionRow>()).ToArray();
-            var rates = (await results.ReadAsync<PromotionRateRow>()).ToArray();
-
-            return PromotionRows.Map(definitions, rates);
+            return rows.Select(row => row.ToCandidate()).ToArray().AsReadOnly();
         }, cancellationToken);
 }

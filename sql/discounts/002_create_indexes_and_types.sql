@@ -22,5 +22,5 @@ CREATE INDEX IX_CustomerPriceLists_PriceList ON dbo.CustomerPriceLists(PriceList
 CREATE INDEX IX_PriceListDiscounts_List ON dbo.PriceListDiscounts(PriceListId,IsActive) INCLUDE(Name,CalculationMethod,CalculationBase,Value,PriorityWithinType);
 -- PKs cover customer assignment, promotion rates and coupon allow-list lookups.
 -- No standalone IsActive/window indexes: these reads first identify a list/code,
--- while promotions intentionally load a full catalog for the in-memory cache.
+-- while promotion refreshes load active rates across all segments and validity windows.
 GO

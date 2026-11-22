@@ -9,7 +9,7 @@ Both modules use repository decorators backed by `IMemoryCache` and the shared `
 
 Expiration starts after a successful load; hits do not extend it. Empty successful results are cached. Exceptions and cancelled loads are not cached. Each singleton decorator directly owns its entries and snapshots the outer catalog collection. FieldDefinition owns its immutable option snapshot, so the custom-field decorator can reuse definitions without cloning their options. Each Dapper operation opens and disposes its own connection.
 
-Promotion eligibility is evaluated for every request using its customer segment, stage-entry amount and shared evaluation timestamp. The cached catalog includes inactive, scheduled and expired candidates so known validity windows remain enforceable without refreshing the cache. Each candidate embeds an immutable Discount; a provider returns that discount only when its candidate is eligible. Definitions without segment rates produce no candidates.
+Promotion eligibility is evaluated for every request using its customer segment, stage-entry amount and shared evaluation timestamp. The catalog loads only active promotions, including scheduled and expired rates, so validity windows stay accurate without refreshing the cache. Administrative changes to activation take effect on the next refresh. Each candidate embeds an immutable Discount; a provider returns that discount only when its candidate is eligible. Definitions without segment rates produce no candidates.
 
 Price-list assignments, coupons, customer segments, pricing results, customer profiles, customer values and history are uncached. The custom-field profile procedure reads definitions, options and values together directly from SQL.
 

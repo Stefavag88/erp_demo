@@ -20,18 +20,12 @@ CREATE OR ALTER PROCEDURE dbo.usp_Promotion_GetDefinitions
 AS
 BEGIN
     SET NOCOUNT ON;
-    -- Cacheable catalog: eligibility is evaluated per request by the C# provider.
-    -- Materialize definitions and rates together so both result sets share one selection.
-    -- A full catalog read is intentional; future/inactive candidates remain available
-    -- for per-request eligibility checks without an extra database round trip.
-    SELECT p.Id,p.Name,p.MinimumCurrentAmount,p.PriorityWithinType,p.IsActive,p.StartsAtUtc,p.EndsAtUtc,
+    -- Cache active promotions across their full validity windows so the provider can evaluate dates per request.
+    SELECT p.Id AS PromotionId,p.Name,p.MinimumCurrentAmount,p.PriorityWithinType,p.IsActive,p.StartsAtUtc,p.EndsAtUtc,
            r.SegmentCode,r.CalculationMethod,r.CalculationBase,r.Value
-    INTO #Candidates
     FROM dbo.Promotions p
-    LEFT JOIN dbo.PromotionSegmentRates r ON r.PromotionId=p.Id;
-    -- Consumers group by identity; the discount engine applies execution ordering.
-    SELECT DISTINCT Id,Name,MinimumCurrentAmount,PriorityWithinType,IsActive,StartsAtUtc,EndsAtUtc FROM #Candidates;
-    SELECT Id AS PromotionId,SegmentCode,CalculationMethod,CalculationBase,Value FROM #Candidates WHERE SegmentCode IS NOT NULL;
+    INNER JOIN dbo.PromotionSegmentRates r ON r.PromotionId=p.Id
+    WHERE p.IsActive=1;
 END;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Coupon_GetEligible
